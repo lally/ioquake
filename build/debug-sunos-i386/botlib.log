@@ -1,0 +1,185 @@
+item team_redobelisk has modelindex 0item team_blueobelisk has modelindex 0item team_neutralobelisk has modelindex 0item item_botroam has modelindex 0entity worldspawn unknown item
+entity func_timer unknown item
+entity target_speaker unknown item
+entity target_speaker unknown item
+entity misc_model unknown item
+entity misc_model unknown item
+entity light unknown item
+entity light unknown item
+entity misc_model unknown item
+entity target_position unknown item
+entity info_player_intermission unknown item
+entity light unknown item
+entity light unknown item
+entity light unknown item
+entity light unknown item
+entity info_player_deathmatch unknown item
+entity light unknown item
+entity info_player_deathmatch unknown item
+entity light unknown item
+entity light unknown item
+entity light unknown item
+entity light unknown item
+entity func_door unknown item
+entity func_door unknown item
+entity light unknown item
+entity light unknown item
+entity light unknown item
+entity misc_model unknown item
+entity misc_model unknown item
+entity misc_model unknown item
+entity misc_model unknown item
+entity misc_model unknown item
+entity light unknown item
+entity light unknown item
+entity light unknown item
+entity light unknown item
+entity misc_model unknown item
+entity misc_model unknown item
+entity light unknown item
+entity light unknown item
+entity light unknown item
+entity light unknown item
+entity light unknown item
+entity light unknown item
+entity light unknown item
+entity light unknown item
+entity light unknown item
+entity misc_model unknown item
+entity misc_model unknown item
+entity light unknown item
+entity light unknown item
+entity light unknown item
+entity light unknown item
+entity light unknown item
+entity light unknown item
+entity light unknown item
+entity light unknown item
+entity light unknown item
+entity light unknown item
+entity light unknown item
+entity light unknown item
+entity misc_model unknown item
+entity misc_model unknown item
+entity misc_model unknown item
+entity light unknown item
+entity light unknown item
+entity misc_model unknown item
+entity misc_model unknown item
+entity misc_model unknown item
+entity light unknown item
+entity light unknown item
+entity light unknown item
+entity light unknown item
+entity light unknown item
+entity light unknown item
+entity light unknown item
+entity light unknown item
+entity light unknown item
+entity light unknown item
+entity info_player_deathmatch unknown item
+entity info_player_deathmatch unknown item
+entity info_player_deathmatch unknown item
+entity info_player_deathmatch unknown item
+entity light unknown item
+entity info_player_deathmatch unknown item
+entity info_player_deathmatch unknown item
+entity light unknown item
+entity light unknown item
+entity light unknown item
+entity light unknown item
+entity light unknown item
+entity light unknown item
+entity light unknown item
+entity light unknown item
+entity light unknown item
+entity light unknown item
+entity misc_model unknown item
+entity misc_model unknown item
+entity misc_model unknown item
+entity misc_model unknown item
+entity misc_model unknown item
+entity light unknown item
+entity light unknown item
+entity light unknown item
+entity misc_model unknown item
+entity light unknown item
+entity light unknown item
+entity light unknown item
+entity light unknown item
+entity light unknown item
+entity light unknown item
+entity light unknown item
+entity light unknown item
+entity light unknown item
+entity light unknown item
+entity light unknown item
+entity light unknown item
+entity light unknown item
+entity light unknown item
+entity misc_model unknown item
+entity misc_model unknown item
+entity misc_model unknown item
+entity target_speaker unknown item
+entity target_speaker unknown item
+entity target_speaker unknown item
+entity target_speaker unknown item
+entity target_speaker unknown item
+entity target_speaker unknown item
+bots/phobos_c.cskill 0
+{
+    0 Phobos
+    1 male
+    2 0.616667
+    3 bots/phobos_w.c
+    4 0.450000
+    5 90
+    6 2.833333
+    7 0.283333
+    8 0.433333
+    9 0.600000
+   10 0.600000
+   11 0.600000
+   12 0.600000
+   13 0.600000
+   14 0.600000
+   15 0.600000
+   16 0.283333
+   17 0.600000
+   18 0.600000
+   19 0.600000
+   20 0.600000
+   21 bots/phobos_t.c
+   22 phobos
+   23 400
+   24 0.300000
+   25 0.500000
+   26 0.500000
+   27 0.500000
+   28 0.500000
+   29 0.500000
+   30 0.500000
+   31 0.150000
+   32 0.500000
+   33 0.500000
+   34 0.500000
+   35 0.200000
+   36 0.166667
+   37 0.033333
+   38 0.033333
+   39 0.033333
+   40 bots/phobos_i.c
+   41 0.250000
+   42 0.450000
+   43 0.250000
+   44 0.250000
+   45 0.500000
+   46 0.666667
+   47 0.766667
+   48 0.000000
+}
+item info 7 "weapon_gauntlet" has no fuzzy weight
+item info 16 "weapon_grapplinghook" has no fuzzy weight
+item info 49 "team_redobelisk" has no fuzzy weight
+item info 50 "team_blueobelisk" has no fuzzy weight
+item info 51 "team_neutralobelisk" has no fuzzy weight
