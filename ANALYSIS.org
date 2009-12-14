@@ -1,3 +1,12 @@
+* Runtime Notes
+  - SDL will _FAIL_ unless you unset LANG.
+  - You can run this in *Xephyr*!!
+    pfexec Xephyr :1.0 &
+    xauth extract - $DISPLAY | DISPLAY=:1.0 xauth merge -
+    DISPLAY=:1.0 ./ioquake3.i386
+
+  - This works  *RELIABLY*
+
 * Source Code Notes
 ** Key Routines
    
