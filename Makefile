@@ -153,6 +153,7 @@ BD=$(BUILD_DIR)/debug-$(PLATFORM)-$(ARCH)
 BR=$(BUILD_DIR)/release-$(PLATFORM)-$(ARCH)
 CDIR=$(MOUNT_DIR)/client
 SDIR=$(MOUNT_DIR)/server
+LSDIR=$(MOUNT_DIR)/ls
 RDIR=$(MOUNT_DIR)/renderer
 CMDIR=$(MOUNT_DIR)/qcommon
 SDLDIR=$(MOUNT_DIR)/sdl
@@ -1362,6 +1363,8 @@ Q3OBJ = \
   $(B)/client/sdl_input.o \
   $(B)/client/sdl_snd.o \
   \
+  $(B)/client/ls_variables.o \
+  \
   $(B)/client/con_passive.o \
   $(B)/client/con_log.o \
   $(B)/client/sys_main.o
@@ -1553,6 +1556,8 @@ Q3DOBJ = \
   $(B)/ded/l_precomp.o \
   $(B)/ded/l_script.o \
   $(B)/ded/l_struct.o \
+  \
+  $(B)/ded/ls_variables.o \
   \
   $(B)/ded/null_client.o \
   $(B)/ded/null_input.o \
@@ -1908,6 +1913,9 @@ $(B)/client/%.o: $(SDIR)/%.c
 $(B)/client/%.o: $(CMDIR)/%.c
 	$(DO_CC)
 
+$(B)/client/%.o: $(LSDIR)/%.c
+	$(DO_CC)
+
 $(B)/client/%.o: $(BLIBDIR)/%.c
 	$(DO_BOT_CC)
 
@@ -1940,6 +1948,9 @@ $(B)/ded/%.o: $(SDIR)/%.c
 	$(DO_DED_CC)
 
 $(B)/ded/%.o: $(CMDIR)/%.c
+	$(DO_DED_CC)
+
+$(B)/ded/%.o: $(LSDIR)/%.c
 	$(DO_DED_CC)
 
 $(B)/ded/%.o: $(BLIBDIR)/%.c

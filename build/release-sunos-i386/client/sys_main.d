@@ -17,4 +17,4 @@ build/release-sunos-i386/client/sys_main.o: code/sys/sys_main.c \
   code/sys/../qcommon/surfaceflags.h code/sys/../qcommon/qcommon.h \
   code/sys/../qcommon/../qcommon/cm_public.h \
   code/sys/../qcommon/../qcommon/qfiles.h code/sys/sys_loadlib.h \
-  /usr/include/SDL/SDL_loadso.h
+  /usr/include/SDL/SDL_loadso.h code/sys/../ls/ls_variables.h

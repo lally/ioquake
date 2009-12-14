@@ -56,6 +56,8 @@ static fileHandle_t logfile;
 fileHandle_t	com_journalFile;			// events are written here
 fileHandle_t	com_journalDataFile;		// config files are written here
 
+cvar_t  *com_ls_runsim; // (0,1), to enable the load simulator.
+cvar_t  *com_ls_headless; // (0,1) to disable graphics.
 cvar_t	*com_speeds;
 cvar_t	*com_developer;
 cvar_t	*com_dedicated;

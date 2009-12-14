@@ -7,8 +7,7 @@
  */
 
 struct ls_pref_s;
-
-typedef int (*ls_pref_constructor)(ls_pref_s *dest, char *input);
+typedef int (*ls_pref_constructor)(struct ls_pref_s *dest, char *input);
 
 typedef struct ls_pref_s {
   // A single preference.  Note that some are set at startup and are
@@ -24,11 +23,11 @@ typedef struct ls_pref_s {
 									  // (usually) d_userdata.
 } ls_pref_t;
 
-enum ls_pref_id {
+typedef enum ls_pref_e {
   LSP_HEADLESS,
   LSP_SIMULATOR,
   LSP_LAST
-};
+} ls_pref_id;
 
 // ACCESSORS
 int   ls_pref_value(ls_pref_id id);

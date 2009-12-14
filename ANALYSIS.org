@@ -1,1 +1,25 @@
- 
+* Source Code Notes
+** Key Routines
+   
+   | Name        | Location         | Purpose                 |
+   |-------------+------------------+-------------------------|
+   | main        | sys/sys_main.c   | main() of program       |
+   | SV_Frame    | server/sv_main.c | Primary simulation loop |
+   | SV_BotFrame | server/sv_bot.c  | Invoke Bot AI           |
+   |             |                  |                         | 
+
+  
+* Simulation
+** AI link-in to sv-main.
+   - Maybe the easiest way is to just have my own routine feed in?
+   - Some sort of configuration management is needed here.
+     - Console variables! -- NO.  They have various
+       archive/replication policies which could really mess things up.
+     - qcommon/common.c has them there.  Track them and add more.
+       | Variable        | Purpose                  | To-enable |
+       |-----------------+--------------------------+-----------|
+       | com_ls_runsim   | Run load simulator       |           |
+       | com_ls_headless | Disable graphics display |           |
+     - Setup a new file, header, and set of flag facilities.
+
+
