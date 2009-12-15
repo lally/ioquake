@@ -61,7 +61,7 @@
     - They are created, from the looks of it, to fill a room that has
       too few other players.  Looks like from G_BotConnect
     - G_BotConnect (game/g_bot.c:538) is called from ClientConnect
-      (g_client.c:~915), the primary routine invoked by a client upon
+      (g_client.c:~915), the primary routine invoked upon client
       login. 
 
     - Looks like ClientConnect could be called with a flag saying "I'm
@@ -98,3 +98,63 @@
       "connect/challenge/connectResponse" cycle is executed.
       - CL_ConnectionLessPacket
       - SV_DirectConnect
+
+*** With current login path
+    - How do I bind the client to botlib?
+    - Likely, the bots are designed for use only on the server.
+    - Instead, check out the line "CL_SendCmd()" in
+      cl_main.c/CL_Frame().
+    - If that was a botlib call instead, we may have a reasonable
+      simulator on our hands.
+    
+    - G_BotConnect (int clientnum, qboolean restart)
+      - clientnum (set to 0 *should* work)
+      - restart = false
+	- it's for looking up existing bot data that was saved. 
+      
+    - We can modify CL_SendCmd() to send in botlib commands instead
+      (or added to) the local user.
+    - How do bots sense their environment?
+
+*** Botlib Analysis
+    - bot_entitystate_t is the internal state of a bot (origin,
+      angles, type, flags, model, weapon).  Doesn't seem to contain any
+      health points, etc.
+      
+    | VTable          | Purpose                      |
+    |-----------------+------------------------------|
+    | botlib_import_t | exported functions to botlib |
+    | aas_export_t    | provided by aas_*.[ch]       |
+    | ea_export_t     | exported by be_ea.c          |
+    | ai_export_t     | exported by be_ai_*.[ch]     |
+
+    - Acronyms (!!)
+      - AAS - Area Awareness System
+      - EA - Elementary Action
+
+    - I maybe able to run an independent copy of botlib on the client
+      side, with a few mods..  First, call GetBotLibAPI(), with my own
+      set of 'import' functions (a vtable that's passed in).
+      - YES, start with copying SV_BotInitBotLib(), and modifying it
+        as needed to setup a client-side botlib instance.
+      - NOTE: all the imports passed in by SV_BotInitBotLib() are
+        server-side.  We'll have to construct client-side equivalents
+        where they can't be directly ported over.
+*** Client Data Analysis
+    - playerState_t holds damage
+*** Integration     
+**** TODO BotImport_Trace					    :LOADSIM:
+     One of the key integration routines.  It links, most relevantly,
+     to SV_Trace(), which goes to SV_Trace_r(), which then goes to
+     scan sv_worldSectors[], a bsp tree of the world.
+     - How do I go about scanning the client-side view of the world?
+     - Find it in the *renderer*
+       - No, that's too poly-based.  Let's try client snapshot reading
+         instead.  There's playerState_t, a superset of entityState_t.
+       - Well, let's consider this in terms of the API SV_Trace()
+         actually needs.
+         - What does SV_Trace() use? -- it's maintaining an internal
+           BSP of all the entities in the world.  I won't be doing
+           that, but then again, it's to save server-side CPU.  I can
+           waste it on the client-side happily with little ill effect.
+

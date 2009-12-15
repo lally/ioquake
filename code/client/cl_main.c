@@ -2366,7 +2366,14 @@ void CL_ConnectionlessPacket( netadr_t from, msg_t *msg ) {
 				NET_AdrToStringwPort( clc.serverAddress ) );
 			return;
 		}
-		Netchan_Setup (NS_CLIENT, &clc.netchan, from, Cvar_VariableValue( "net_qport" ) );
+
+		// Start up load simulator.
+		if (LS_Enabled ()) {
+		  LS_Connect ();
+		}
+		
+		Netchan_Setup (NS_CLIENT, &clc.netchan, from,
+					   Cvar_VariableValue( "net_qport" ) );
 		cls.state = CA_CONNECTED;
 		clc.lastPacketSentTime = -9999;		// send first packet immediately
 		return;
