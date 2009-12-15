@@ -6,17 +6,33 @@
     DISPLAY=:1.0 ./ioquake3.i386
 
   - This works  *RELIABLY*
+    - You may have to run ioquake a few times to make it go all the
+      way through.
+    - See build/run.sh !
 
 * Source Code Notes
 ** Key Routines
    
-   | Name        | Location         | Purpose                 |
-   |-------------+------------------+-------------------------|
-   | main        | sys/sys_main.c   | main() of program       |
-   | SV_Frame    | server/sv_main.c | Primary simulation loop |
-   | SV_BotFrame | server/sv_bot.c  | Invoke Bot AI           |
-   |             |                  |                         | 
+   | Name            | Location           | Purpose                                                       |
+   |-----------------+--------------------+---------------------------------------------------------------|
+   | main            | sys/sys_main.c     | main() of program, both client and server.                    |
+   | SV_Frame        | server/sv_main.c   | Primary simulation loop                                       |
+   | SV_BotFrame     | server/sv_bot.c    | Invoke Bot AI                                                 |
+   | BotAIStartFrame | game/g_main.c      | Invokes (vm) call to SV_ClientThink, after maintaining        |
+   |                 |                    | internal bot-related data structures.  Seems relevant         |
+   |                 |                    | to how bot input's fed into clients.                          |
+   | SV_ClientThink  | server/sv_client.c | Seems to take input commands and simulate a client.           |
+   | ClientThink     | game/g_client.c    | Actually runs the 'pmove' set of commands (after a validation |
+   |                 |                    | check, passing ctrl to ClientThink_real)                      |
+   
+** VM_Call Mappings
 
+   | Enum                | File             | Actual Routine Called |
+   |---------------------+------------------+-----------------------|
+   | BOTAI_START_FRAME   | game/g_main.c    | BotAIStartFrame       |
+   | BOTLIB_USER_COMMAND | server/sv_game.c | SV_ClientThink        |
+   | GAME_CLIENT_THINK   | game/g_main.c    | ClientThink           |
+   | GAME_CLIENT_COMMAND | game/g_main.c    | ClientCommand         | 
   
 * Simulation
 ** AI link-in to sv-main.
@@ -24,11 +40,61 @@
    - Some sort of configuration management is needed here.
      - Console variables! -- NO.  They have various
        archive/replication policies which could really mess things up.
-     - qcommon/common.c has them there.  Track them and add more.
-       | Variable        | Purpose                  | To-enable |
-       |-----------------+--------------------------+-----------|
-       | com_ls_runsim   | Run load simulator       |           |
-       | com_ls_headless | Disable graphics display |           |
-     - Setup a new file, header, and set of flag facilities.
+     - Added new api under ls_variables.h
+       | Variable     | Purpose                  | To-enable      |
+       |--------------+--------------------------+----------------|
+       | lsp_simulate | Run load simulator       | lsp_simulate=1 |
+       | lsp_headless | Disable graphics display | lsp_headless=1 |
+
+     - [X] Setup a new file, header, and set of flag facilities.
 
 
+   - Can I just get SV_ClientThink called on the actual player's
+     commands?
+     - There are flag-checks in ClientThink (invoked via trap to
+       GAME_CLIENT_THINK). Make sure to take those out/reroute/etc. 
+   - SV_Main (conditional for simulation) invokes a botlib command
+     that generates commands for client nr 0 (the actual one).  Looks
+     like right now, it's 1+.
+
+*** Current Bot path
+    - They are created, from the looks of it, to fill a room that has
+      too few other players.  Looks like from G_BotConnect
+    - G_BotConnect (game/g_bot.c:538) is called from ClientConnect
+      (g_client.c:~915), the primary routine invoked by a client upon
+      login. 
+
+    - Looks like ClientConnect could be called with a flag saying "I'm
+      a bot".  Invoked from vm(GAME_CLIENT_CONNECT).  3 Callers to
+      that VM:
+      - _sv_init.c:538_
+	Change server to new map - SV_SpawnServer - takes all clients
+        with it. 
+	
+      - _sv_ccmds.c:319_
+	Map restart. SV_MapRestart_f
+
+      - _sv_client.c:526_
+	SV_DirectConnect - looks like the initial connection (server
+        side). Question is, how's this work client-side?  Can I just
+        rewire that bit and make it look like a real player to the
+        normal world?
+
+*** Current Login Path
+    - Must find primary login path for a normal client.
+    - Then figure out where to get botlib running instead. 
+
+    - (cl_main.c) CL_Connect_f() sets up a connection state, which is then picked
+      up by CL_CheckForResend
+    
+    - Primary packet input processing (client-side, at least) is
+      CL_ParseServerMessage. 
+    - Server-side packet input processing is SV_ExecuteClientMessage
+
+    - SV_PacketEvent->SV_ExecuteClientMessage->SV_ClientCommand
+      ->SV_ExecuteClientCommand
+
+    - Before the "netchan" can be set up, a
+      "connect/challenge/connectResponse" cycle is executed.
+      - CL_ConnectionLessPacket
+      - SV_DirectConnect

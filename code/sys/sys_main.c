@@ -508,7 +508,7 @@ int main( int argc, char **argv )
 	char  commandLine[ MAX_STRING_CHARS ] = { 0 };
 
 	// Look for any of my arguments first.
-	//	argv = ls_pref_load(&argc, argv);
+	argv = ls_pref_load(&argc, argv);
 	
 #ifndef DEDICATED
 	// SDL version check
