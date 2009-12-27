@@ -42,7 +42,24 @@
    | entityState_t | q_shared.h | State of any entity, as received  |
    |               |            | over network.  playerState_t is a |
    |               |            | proper superset.                  |
+** Renderer
+   - Looks like the renderer is pluggable.  RE_RenderScene and
+     trap_R_RenderScene().
+   - 'tr' in tr_main.c seems to maintain the draw graph.  NO, it's the
+     vtable. 
+   - "RE" is the "refresh" module.  tr_public.h:30
+* Networking
+  see cg_snapshot.c
+  - Note: L245 in cg_snapshot.c: CG_BuildSolidList().  Does this thing
+    store them only as renderables client-side?.  There has to be some
+    simulation going on.  Nah, just maintains a count of solid vs
+    "trigger" entities.
 
+** Client-Side Networking
+   - cl_main.c:CL_PacketEvent
+   - cl_parse.c:CL_ParseServerMessage
+   - cl_parse.c:CL_ParseSnapshot
+   - 
 * Simulation
 ** AI link-in to sv-main.
    - Maybe the easiest way is to just have my own routine feed in?
@@ -65,8 +82,11 @@
    - SV_Main (conditional for simulation) invokes a botlib command
      that generates commands for client nr 0 (the actual one).  Looks
      like right now, it's 1+.
+   - Also, clientActive_t (client.h) has mouseDx/mouseDy members,
+     which may be sent directly over to the other side.  This may be a
+     decent place for a port of the simulator.
 
-** Current Bot path
+** Current Bot path (incl networking)
    - They are created, from the looks of it, to fill a room that has
      too few other players.  Looks like from G_BotConnect
    - G_BotConnect (game/g_bot.c:538) is called from ClientConnect
@@ -151,6 +171,9 @@
        where they can't be directly ported over.
 ** Client Data Analysis
    - playerState_t holds damage 
+   - Where are the client-side entities held?  Can I find a routine to
+     scan an area for me?
+     - Scan the renderer.
 ** Integration     
 *** TODO BotImport_Trace					    :LOADSIM:
     One of the key integration routines.  It links, most relevantly,
@@ -166,4 +189,307 @@
 	  BSP of all the entities in the world.  I won't be doing
 	  that, but then again, it's to save server-side CPU.  I can
 	  waste it on the client-side happily with little ill effect.
+
+	- What can I use instead of the server-side BSP?
+	  - All I have is what the client receives.  I can scan that,
+            I suppose.  
+	- Looking at the interface for BotImport_Trace(), the result
+          is stored in a parameter: bsp_trace_t *bsptrace, which is a
+          structure in botlib.h:
+
+	  = typedef struct bsp_trace_s
+	  = {
+	  = 	qboolean		allsolid;	// if true, plane is not valid
+	  = 	qboolean		startsolid;	// if true, the initial point was in a solid area
+	  = 	float			fraction;	// time completed, 1.0 = didn't hit anything
+	  = 	vec3_t			endpos;		// final position
+	  = 	cplane_t		plane;		// surface normal at impact
+	  = 	float			exp_dist;	// expanded plane distance
+	  = 	int			sidenum;	// number of the brush side hit
+	  = 	bsp_surface_t	        surface;	// the hit point surface
+	  = 	int			contents;	// contents on other side of surface hit
+	  = 	int			ent;		// number of entity hit
+	  = } bsp_trace_t;
+	  - Note the last element `ent`, which corresponds to an
+            entityState_t. 
+
+    - I could sort all entities across the vector, and scan that ways:
+      nlogn * compare_time<entity>().
+      - What's the current representational shape of an entity?  And
+        that of the box being slid across the vector?
+        | Type | Sliding Box | Entity |
+        |------+-------------+--------|
+        | AABB | YUP         |        |
+        | OOBB |             |        |
+
+
+**** Source Analysis
+     
+| SV_Trace  - sv_world.c:600                                            | Comment                  |
+|-----------------------------------------------------------------------+--------------------------|
+| > moveclip_t      clip;                                               |                          |
+| > int                     i;                                          |                          |
+| >                                                                     |                          |
+| > if ( !mins ) {                                                      | defaults to origin       |
+| >         mins = vec3_origin;                                         |                          |
+| > }                                                                   |                          |
+| > if ( !maxs ) {                                                      |                          |
+| >         maxs = vec3_origin;                                         |                          |
+| > }                                                                   |                          |
+| >                                                                     |                          |
+| > Com_Memset ( &clip, 0, sizeof ( moveclip_t ) );                     |                          |
+| >                                                                     |                          |
+| > // clip to world                                                    |                          |
+| > CM_BoxTrace( &clip.trace, start, end, mins, maxs, \                 | call CM_BoxTrace         |
+| >              0, contentmask, capsule );                             | Some sort of retcode     |
+| > clip.trace.entityNum = clip.trace.fraction != 1.0 ? \               | analysis mapped to enums |
+| >              ENTITYNUM_WORLD : ENTITYNUM_NONE;                      |                          |
+| > if ( clip.trace.fraction == 0 ) {                                   |                          |
+| >         *results = clip.trace;                                      |                          |
+| >         return;         // blocked immediately by the world         |                          |
+| > }                                                                   |                          |
+| >                                                                     |                          |
+| > clip.contentmask = contentmask;                                     |                          |
+| > clip.start = start;                                                 |                          |
+| >                                                                     |                          |
+| > VectorCopy( end, clip.end );                                        |                          |
+| > clip.mins = mins;                                                   |                          |
+| > clip.maxs = maxs;                                                   |                          |
+| > clip.passEntityNum = passEntityNum;                                 |                          |
+| > clip.capsule = capsule;                                             |                          |
+| >                                                                     |                          |
+| > // create the bounding box of the entire move                       |                          |
+| > // we can limit it to the part of the move not                      |                          |
+| > // already clipped off by the world, which can be                   |                          |
+| > // a significant savings for line of sight and shot traces          |                          |
+| > for ( i=0 ; i<3 ; i++ ) {                                           | build bounding box       |
+| >         if ( end[i] > start[i] ) {                                  |                          |
+| >                 clip.boxmins[i] = clip.start[i] + clip.mins[i] - 1; |                          |
+| >                 clip.boxmaxs[i] = clip.end[i] + clip.maxs[i] + 1;   |                          |
+| >         } else {                                                    |                          |
+| >                 clip.boxmins[i] = clip.end[i] + clip.mins[i] - 1;   |                          |
+| >                 clip.boxmaxs[i] = clip.start[i] + clip.maxs[i] + 1; |                          |
+| >         }                                                           |                          |
+| > }                                                                   |                          |
+| >                                                                     |                          |
+| > // clip to other solid entities                                     |                          |
+| > SV_ClipMoveToEntities ( &clip );                                    | SV_ClipMoveToEntities    |
+| >                                                                     |                          |
+| > *results = clip.trace;                                              |                          |
+| >                                                                     |                          |
+|-----------------------------------------------------------------------+--------------------------|
+
+| CM_BoxTrace - calls CM_Trace |
+
+| CM_Trace - cm_trace.c:1142                                                                              | Comment                     |
+|---------------------------------------------------------------------------------------------------------+-----------------------------|
+| > int                     i;                                                                            |                             |
+| > traceWork_t     tw;                                                                                   |                             |
+| > vec3_t          offset;                                                                               |                             |
+| > cmodel_t        *cmod;                                                                                |                             |
+| >                                                                                                       |                             |
+| > cmod = CM_ClipHandleToModel( model );                                                                 | What's a handle?            |
+| >                                                                                                       |                             |
+| > cm.checkcount++;                // for multi-check avoidance                                          |                             |
+| >                                                                                                       |                             |
+| > c_traces++;                             // for statistics, may be zeroed                              |                             |
+| >                                                                                                       |                             |
+| > // fill in a default trace                                                                            |                             |
+| > Com_Memset( &tw, 0, sizeof(tw) );                                                                     |                             |
+| > tw.trace.fraction = 1;  // assume it goes the entire distance until shown otherwise                   |                             |
+| > VectorCopy(origin, tw.modelOrigin);                                                                   |                             |
+| >                                                                                                       |                             |
+| > if (!cm.numNodes) {                                                                                   |                             |
+| >         *results = tw.trace;                                                                          |                             |
+| >                                                                                                       |                             |
+| >         return; // map not loaded, shouldn't happen                                                   |                             |
+| > }                                                                                                     |                             |
+| >                                                                                                       |                             |
+| > // allow NULL to be passed in for 0,0,0                                                               |                             |
+| > if ( !mins ) {                                                                                        |                             |
+| >         mins = vec3_origin;                                                                           |                             |
+| > }                                                                                                     |                             |
+| > if ( !maxs ) {                                                                                        |                             |
+| >         maxs = vec3_origin;                                                                           |                             |
+| > }                                                                                                     |                             |
+| >                                                                                                       |                             |
+| > // set basic parms                                                                                    |                             |
+| > tw.contents = brushmask;                                                                              |                             |
+| >                                                                                                       |                             |
+| > // adjust so that mins and maxs are always symetric, which                                            |                             |
+| > // avoids some complications with plane expanding of rotated                                          |                             |
+| > // bmodels                                                                                            |                             |
+| > for ( i = 0 ; i < 3 ; i++ ) {                                                                         |                             |
+| >         offset[i] = ( mins[i] + maxs[i] ) * 0.5;                                                      |                             |
+| >         tw.size[0][i] = mins[i] - offset[i];                                                          |                             |
+| >         tw.size[1][i] = maxs[i] - offset[i];                                                          |                             |
+| >         tw.start[i] = start[i] + offset[i];                                                           |                             |
+| >         tw.end[i] = end[i] + offset[i];                                                               |                             |
+| > }                                                                                                     |                             |
+| >                                                                                                       |                             |
+| > // if a sphere is already specified                                                                   |                             |
+| > if ( sphere ) {                                                                                       |                             |
+| >         tw.sphere = *sphere;                                                                          |                             |
+| > }                                                                                                     |                             |
+| > else {                                                                                                |                             |
+| >         tw.sphere.use = capsule;                                                                      |                             |
+| >         tw.sphere.radius = ( tw.size[1][0] > tw.size[1][2] ) ? tw.size[1][2]: tw.size[1][0];          |                             |
+| >         tw.sphere.halfheight = tw.size[1][2];                                                         |                             |
+| >         VectorSet( tw.sphere.offset, 0, 0, tw.size[1][2] - tw.sphere.radius );                        |                             |
+| > }                                                                                                     |                             |
+| >                                                                                                       |                             |
+| > tw.maxOffset = tw.size[1][0] + tw.size[1][1] + tw.size[1][2];                                         |                             |
+| >                                                                                                       |                             |
+| > // tw.offsets[signbits] = vector to apropriate corner from origin                                     |                             |
+| > tw.offsets[0][0] = tw.size[0][0];                                                                     |                             |
+| > tw.offsets[0][1] = tw.size[0][1];                                                                     |                             |
+| > tw.offsets[0][2] = tw.size[0][2];                                                                     |                             |
+| >                                                                                                       |                             |
+| > tw.offsets[1][0] = tw.size[1][0];                                                                     |                             |
+| > tw.offsets[1][1] = tw.size[0][1];                                                                     |                             |
+| > tw.offsets[1][2] = tw.size[0][2];                                                                     |                             |
+| >                                                                                                       |                             |
+| > tw.offsets[2][0] = tw.size[0][0];                                                                     |                             |
+| > tw.offsets[2][1] = tw.size[1][1];                                                                     |                             |
+| > tw.offsets[2][2] = tw.size[0][2];                                                                     |                             |
+| >                                                                                                       |                             |
+| > tw.offsets[3][0] = tw.size[1][0];                                                                     |                             |
+| > tw.offsets[3][1] = tw.size[1][1];                                                                     |                             |
+| > tw.offsets[3][2] = tw.size[0][2];                                                                     |                             |
+| >                                                                                                       |                             |
+| > tw.offsets[4][0] = tw.size[0][0];                                                                     |                             |
+| > tw.offsets[4][1] = tw.size[0][1];                                                                     |                             |
+| > tw.offsets[4][2] = tw.size[1][2];                                                                     |                             |
+| >                                                                                                       |                             |
+| > tw.offsets[5][0] = tw.size[1][0];                                                                     |                             |
+| > tw.offsets[5][1] = tw.size[0][1];                                                                     |                             |
+| > tw.offsets[5][2] = tw.size[1][2];                                                                     |                             |
+| >                                                                                                       |                             |
+| > tw.offsets[6][0] = tw.size[0][0];                                                                     |                             |
+| > tw.offsets[6][1] = tw.size[1][1];                                                                     |                             |
+| > tw.offsets[6][2] = tw.size[1][2];                                                                     |                             |
+| >                                                                                                       |                             |
+| > tw.offsets[7][0] = tw.size[1][0];                                                                     |                             |
+| > tw.offsets[7][1] = tw.size[1][1];                                                                     |                             |
+| > tw.offsets[7][2] = tw.size[1][2];                                                                     |                             |
+| >                                                                                                       |                             |
+| > //                                                                                                    |                             |
+| > // calculate bounds                                                                                   |                             |
+| > //                                                                                                    |                             |
+| > if ( tw.sphere.use ) {                                                                                |                             |
+| >         for ( i = 0 ; i < 3 ; i++ ) {                                                                 |                             |
+| >                 if ( tw.start[i] < tw.end[i] ) {                                                      |                             |
+| >                         tw.bounds[0][i] = tw.start[i] - fabs(tw.sphere.offset[i]) - tw.sphere.radius; |                             |
+| >                         tw.bounds[1][i] = tw.end[i] + fabs(tw.sphere.offset[i]) + tw.sphere.radius;   |                             |
+| >                 } else {                                                                              |                             |
+| >                         tw.bounds[0][i] = tw.end[i] - fabs(tw.sphere.offset[i]) - tw.sphere.radius;   |                             |
+| >                         tw.bounds[1][i] = tw.start[i] + fabs(tw.sphere.offset[i]) + tw.sphere.radius; |                             |
+| >                 }                                                                                     |                             |
+| >         }                                                                                             |                             |
+| > }                                                                                                     |                             |
+| > else {                                                                                                |                             |
+| >         for ( i = 0 ; i < 3 ; i++ ) {                                                                 |                             |
+| >                 if ( tw.start[i] < tw.end[i] ) {                                                      |                             |
+| >                         tw.bounds[0][i] = tw.start[i] + tw.size[0][i];                                |                             |
+| >                         tw.bounds[1][i] = tw.end[i] + tw.size[1][i];                                  |                             |
+| >                 } else {                                                                              |                             |
+| >                         tw.bounds[0][i] = tw.end[i] + tw.size[0][i];                                  |                             |
+| >                         tw.bounds[1][i] = tw.start[i] + tw.size[1][i];                                |                             |
+| >                 }                                                                                     |                             |
+| >         }                                                                                             |                             |
+| > }                                                                                                     |                             |
+| >                                                                                                       |                             |
+| > //                                                                                                    |                             |
+| > // check for position test special case                                                               |                             |
+| > //                                                                                                    |                             |
+| > if (start[0] == end[0] && start[1] == end[1] && start[2] == end[2]) {                                 |                             |
+| >         if ( model ) {                                                                                |                             |
+| > #ifdef ALWAYS_BBOX_VS_BBOX // FIXME - compile time flag?                                              |                             |
+| >                 if ( model == BOX_MODEL_HANDLE \\ model == CAPSULE_MODEL_HANDLE) {                    |                             |
+| >                         tw.sphere.use = qfalse;                                                       |                             |
+| >                         CM_TestInLeaf( &tw, &cmod->leaf );                                            | CM_TestInLeaf               |
+| >                 }                                                                                     |                             |
+| >                 else                                                                                  |                             |
+| > #elif defined(ALWAYS_CAPSULE_VS_CAPSULE)                                                              |                             |
+| >                 if ( model == BOX_MODEL_HANDLE \\ model == CAPSULE_MODEL_HANDLE) {                    |                             |
+| >                         CM_TestCapsuleInCapsule( &tw, model );                                        | CM_TestCapsuleInCapsule     |
+| >                 }                                                                                     |                             |
+| >                 else                                                                                  |                             |
+| > #endif                                                                                                |                             |
+| >                 if ( model == CAPSULE_MODEL_HANDLE ) {                                                |                             |
+| >                         if ( tw.sphere.use ) {                                                        |                             |
+| >                                 CM_TestCapsuleInCapsule( &tw, model );                                | CM_TestCapsuleInCapsule     |
+| >                         }                                                                             |                             |
+| >                         else {                                                                        |                             |
+| >                                 CM_TestBoundingBoxInCapsule( &tw, model );                            | CM_TestBoundingBoxInCapsule |
+| >                         }                                                                             |                             |
+| >                 }                                                                                     |                             |
+| >                 else {                                                                                |                             |
+| >                         CM_TestInLeaf( &tw, &cmod->leaf );                                            |                             |
+| >                 }                                                                                     |                             |
+| >         } else {                                                                                      |                             |
+| >                 CM_PositionTest( &tw );                                                               | CM_PositionTest             |
+| >         }                                                                                             |                             |
+| > } else {                                                                                              |                             |
+| >         //                                                                                            |                             |
+| >         // check for point special case                                                               |                             |
+| >         //                                                                                            |                             |
+| >         if ( tw.size[0][0] == 0 && tw.size[0][1] == 0 && tw.size[0][2] == 0 ) {                       |                             |
+| >                 tw.isPoint = qtrue;                                                                   |                             |
+| >                 VectorClear( tw.extents );                                                            |                             |
+| >         } else {                                                                                      |                             |
+| >                 tw.isPoint = qfalse;                                                                  |                             |
+| >                 tw.extents[0] = tw.size[1][0];                                                        |                             |
+| >                 tw.extents[1] = tw.size[1][1];                                                        |                             |
+| >                 tw.extents[2] = tw.size[1][2];                                                        |                             |
+| >         }                                                                                             |                             |
+| >                                                                                                       |                             |
+| >         //                                                                                            |                             |
+| >         // general sweeping through world                                                             |                             |
+| >         //                                                                                            |                             |
+| >         if ( model ) {                                                                                |                             |
+| > #ifdef ALWAYS_BBOX_VS_BBOX                                                                            |                             |
+| >                 if ( model == BOX_MODEL_HANDLE \\ model == CAPSULE_MODEL_HANDLE) {                    |                             |
+| >                         tw.sphere.use = qfalse;                                                       |                             |
+| >                         CM_TraceThroughLeaf( &tw, &cmod->leaf );                                      |                             |
+| >                 }                                                                                     |                             |
+| >                 else                                                                                  |                             |
+| > #elif defined(ALWAYS_CAPSULE_VS_CAPSULE)                                                              |                             |
+| >                 if ( model == BOX_MODEL_HANDLE \\ model == CAPSULE_MODEL_HANDLE) {                    |                             |
+| >                         CM_TraceCapsuleThroughCapsule( &tw, model );                                  |                             |
+| >                 }                                                                                     |                             |
+| >                 else                                                                                  |                             |
+| > #endif                                                                                                |                             |
+| >                 if ( model == CAPSULE_MODEL_HANDLE ) {                                                |                             |
+| >                         if ( tw.sphere.use ) {                                                        |                             |
+| >                                 CM_TraceCapsuleThroughCapsule( &tw, model );                          |                             |
+| >                         }                                                                             |                             |
+| >                         else {                                                                        |                             |
+| >                                 CM_TraceBoundingBoxThroughCapsule( &tw, model );                      |                             |
+| >                         }                                                                             |                             |
+| >                 }                                                                                     |                             |
+| >                 else {                                                                                |                             |
+| >                         CM_TraceThroughLeaf( &tw, &cmod->leaf );                                      |                             |
+| >                 }                                                                                     |                             |
+| >         } else {                                                                                      |                             |
+| >                 CM_TraceThroughTree( &tw, 0, 0, 1, tw.start, tw.end );                                |                             |
+| >         }                                                                                             |                             |
+| > }                                                                                                     |                             |
+| >                                                                                                       |                             |
+| > // generate endpos from the original, unmodified start/end                                            |                             |
+| > if ( tw.trace.fraction == 1 ) {                                                                       |                             |
+| >         VectorCopy (end, tw.trace.endpos);                                                            |                             |
+| > } else {                                                                                              |                             |
+| >         for ( i=0 ; i<3 ; i++ ) {                                                                     |                             |
+| >                 tw.trace.endpos[i] = start[i] + tw.trace.fraction * (end[i] - start[i]);              |                             |
+| >         }                                                                                             |                             |
+| > }                                                                                                     |                             |
+| >                                                                                                       |                             |
+| > // If allsolid is set (was entirely inside something solid), the plane is not valid.                  |                             |
+| > // If fraction == 1.0, we never hit anything, and thus the plane is not valid.                        |                             |
+| > // Otherwise, the normal on the plane should have unit length                                         |                             |
+| > assert(tw.trace.allsolid \\                                                                           |                             |
+| >        tw.trace.fraction == 1.0 \\                                                                    |                             |
+| >        VectorLengthSquared(tw.trace.plane.normal) > 0.9999);                                          |                             |
+| > *results = tw.trace;                                                                                  |                             |
 
