@@ -618,8 +618,11 @@ void SV_Trace( trace_t			*results,
 	Com_Memset ( &clip, 0, sizeof ( moveclip_t ) );
 
 	// clip to world
-	CM_BoxTrace( &clip.trace, start, end, mins, maxs, 0, contentmask, capsule );
-	clip.trace.entityNum = clip.trace.fraction != 1.0 ? ENTITYNUM_WORLD : ENTITYNUM_NONE;
+	CM_BoxTrace( &clip.trace, start, end, mins, maxs,
+				 0, contentmask, capsule );
+	clip.trace.entityNum = clip.trace.fraction != 1.0 ?
+	             ENTITYNUM_WORLD : ENTITYNUM_NONE;
+	
 	if ( clip.trace.fraction == 0 ) {
 		*results = clip.trace;
 		return;		// blocked immediately by the world

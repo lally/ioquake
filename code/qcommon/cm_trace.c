@@ -1139,8 +1139,10 @@ void CM_TraceThroughTree( traceWork_t *tw, int num, float p1f, float p2f, vec3_t
 CM_Trace
 ==================
 */
-void CM_Trace( trace_t *results, const vec3_t start, const vec3_t end, vec3_t mins, vec3_t maxs,
-						  clipHandle_t model, const vec3_t origin, int brushmask, int capsule, sphere_t *sphere ) {
+void CM_Trace( trace_t *results, const vec3_t start, const vec3_t end,
+			   vec3_t mins, vec3_t maxs,
+			   clipHandle_t model, const vec3_t origin,
+			   int brushmask, int capsule, sphere_t *sphere ) {
 	int			i;
 	traceWork_t	tw;
 	vec3_t		offset;
@@ -1154,7 +1156,8 @@ void CM_Trace( trace_t *results, const vec3_t start, const vec3_t end, vec3_t mi
 
 	// fill in a default trace
 	Com_Memset( &tw, 0, sizeof(tw) );
-	tw.trace.fraction = 1;	// assume it goes the entire distance until shown otherwise
+	tw.trace.fraction = 1;	// assume it goes the entire distance
+							// until shown otherwise
 	VectorCopy(origin, tw.modelOrigin);
 
 	if (!cm.numNodes) {

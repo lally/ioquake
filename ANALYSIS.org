@@ -131,19 +131,19 @@
 *** With current login path
     - How do I bind the client to botlib?
     - Likely, the bots are designed for use only on the server.
-    - Instead, check out the line "CL_SendCmd()" in
-      cl_main.c/CL_Frame().
+    - [ ] Instead, check out the line "CL_SendCmd()" in
+	  cl_main.c/CL_Frame().
     - If that was a botlib call instead, we may have a reasonable
       simulator on our hands.
     
-    - G_BotConnect (int clientnum, qboolean restart)
+    - [ ] G_BotConnect (int clientnum, qboolean restart)
       - clientnum (set to 0 *should* work)
       - restart = false
        	- it's for looking up existing bot data that was saved. 
       
-    - We can modify CL_SendCmd() to send in botlib commands instead
+    - [ ] We can modify CL_SendCmd() to send in botlib commands instead
       (or added to) the local user.
-    - How do bots sense their environment?
+    - [ ] How do bots sense their environment?
 
 ** Botlib Analysis
    - bot_entitystate_t is the internal state of a bot (origin,
@@ -175,7 +175,7 @@
      scan an area for me?
      - Scan the renderer.
 ** Integration     
-*** TODO BotImport_Trace					    :LOADSIM:
+*** DONE BotImport_Trace 					    :LOADSIM:
     One of the key integration routines.  It links, most relevantly,
     to SV_Trace(), which goes to SV_Trace_r(), which then goes to
     scan sv_worldSectors[], a bsp tree of the world.
@@ -222,6 +222,46 @@
         | AABB | YUP         |        |
         | OOBB |             |        |
 
+  CM_Trace usage:
+    Called as:
+    | Arg             | Got? | Calculate |
+    |-----------------+------+-----------|
+    | &trace          |      |           |
+    | start_l         |      |           |
+    | end_l           |      |           |
+    | symetricSize[0] |      |           |
+    | symetricSize[1] |      |           |
+    | model           |      |           |
+    | origin          |      |           |
+    | brushmask       |      |           |
+    | capsule         |      |           |
+    |                 |      |           |
+    Called from CM_TransformedBoxTrace(
+    | Arg                   | Got? | Calculate |
+    |-----------------------+------+-----------|
+    | &trace                |      |           |
+    | (float *) clip->start |      |           |
+    | (float *) clip->end   |      |           |
+    | (float *) clip->mins  |      |           |
+    | (float *) clip->maxs  |      |           |
+    | clipHandle            |      |           |
+    | clip->contentmask     |      |           |
+    | origin                |      |           |
+    | angles                |      |           |
+    | clip->capsule         |      |           |
+    )
+    Called from SV_ClipMoveToEntities(moveclip_t)
+    
+    Called from SV_Trace
+      | Arg           | Origin |
+      |---------------+--------|
+      | contentmask   | arg    |
+      | start         | arg    |
+      | end           | arg    |
+      | mins          | arg    |
+      | maxs          | arg    |
+      | passEntityNum | arg    |
+      | capsule       | qfalse |
 
 **** Source Analysis
      
@@ -493,3 +533,24 @@
 | >        VectorLengthSquared(tw.trace.plane.normal) > 0.9999);                                          |                             |
 | > *results = tw.trace;                                                                                  |                             |
 
+*** DONE BotImport_EntityTrace					    :LOADSIM:
+    "trace a bbox against a specific entity"
+    - Just a wrapper around SV_ClipToEntity
+
+**** SV_ClipToEntity
+     Calls SV_GentityNum
+     - Just returns an address to a sharedEntity_t. A one-liner
+       address-of from an array.
+     Calls SV_ClipHandleForEntity
+     - two if()s and a final branch.  Each calling one of
+     [CM_InlineModel, CM_TempBoxModel]
+     Calls CM_TransformedBoxTrace
+
+*** DONE BotImport_PointContents				    :LOADSIM:
+    Calls SV_PointContents(point, -1)
+    
+*** DONE BotImport_inPVS					    :LOADSIM:
+    Calls SV_inPVS(p1,p2)
+
+* Random Scalability Notes
+  - g_public.h:64 - Max clients must be <= 32 for 'singleClient'

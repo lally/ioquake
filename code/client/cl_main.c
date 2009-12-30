@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // cl_main.c  -- client main loop
 
 #include "client.h"
+#include "../ls/ls_core.h"
 #include <limits.h>
 
 #ifdef USE_MUMBLE

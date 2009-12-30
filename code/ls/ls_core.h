@@ -13,9 +13,11 @@
 //   simulator will be aware of its environment and respond to other
 //   users, but look like a logged-in human to other players.
 
+#include "../qcommon/q_shared.h"
+#include "../botlib/botlib.h"
 
-qboolean LS_Initialize(botlib_export_t *result);
-qboolean LS_Enabled ();
-qboolean LS_Connect ();
+qboolean LS_Initialize(botlib_export_t **result);
+qboolean LS_Enabled (void);
+qboolean LS_Connect (void);
 
 #endif /* INCLUDE_LS_CORE */
