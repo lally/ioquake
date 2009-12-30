@@ -82,9 +82,15 @@
    - SV_Main (conditional for simulation) invokes a botlib command
      that generates commands for client nr 0 (the actual one).  Looks
      like right now, it's 1+.
-   - Also, clientActive_t (client.h) has mouseDx/mouseDy members,
-     which may be sent directly over to the other side.  This may be a
-     decent place for a port of the simulator.
+     - Umm, SV_Main() is server side.  Client 0 isn't special, it's
+       just the human in the game, and there's always at least one (to
+       start the game!).  Server-side botlib commands can be studied,
+       but should probably stay in as normal.
+
+*** clientActive_t (client.h) has mouseDx/mouseDy members,	      :WRONG:
+    which may be sent directly over to the other side.  This may be a
+    decent place for a port of the simulator.
+    - Actually it's all taken care of in CL_ClientCmd, et al.
 
 ** Current Bot path (incl networking)
    - They are created, from the looks of it, to fill a room that has
@@ -174,94 +180,104 @@
    - Where are the client-side entities held?  Can I find a routine to
      scan an area for me?
      - Scan the renderer.
-** Integration     
-*** DONE BotImport_Trace 					    :LOADSIM:
-    One of the key integration routines.  It links, most relevantly,
-    to SV_Trace(), which goes to SV_Trace_r(), which then goes to
-    scan sv_worldSectors[], a bsp tree of the world.
-    - How do I go about scanning the client-side view of the world?
-    - Find it in the *renderer*
-      - No, that's too poly-based.  Let's try client snapshot reading
-	instead.  There's playerState_t, a superset of entityState_t.
-      - Well, let's consider this in terms of the API SV_Trace()
-	actually needs.
-	- What does SV_Trace() use? -- it's maintaining an internal
-	  BSP of all the entities in the world.  I won't be doing
-	  that, but then again, it's to save server-side CPU.  I can
-	  waste it on the client-side happily with little ill effect.
+** Integration
+*** Plan
+    Overall, wire up a dumb "move-random" dummy client, then integrate
+    botlib. 
+    - [X] Modify CL_SendCmd.  It's easier.
+    - [X] A command-line switch, lsp_simulate (already wired into
+      argc/argv, but I need to check it) wired into LS_Enabled.  It
+      should just flip s_enabled.  Read in at first-run of LS_Enabled
+      now. 
 
-	- What can I use instead of the server-side BSP?
-	  - All I have is what the client receives.  I can scan that,
-            I suppose.  
-	- Looking at the interface for BotImport_Trace(), the result
-          is stored in a parameter: bsp_trace_t *bsptrace, which is a
-          structure in botlib.h:
+*** BotImport 
+**** DONE BotImport_Trace					    :LOADSIM:
+     One of the key integration routines.  It links, most relevantly,
+     to SV_Trace(), which goes to SV_Trace_r(), which then goes to
+     scan sv_worldSectors[], a bsp tree of the world.
+     - How do I go about scanning the client-side view of the world?
+     - Find it in the *renderer*
+       - No, that's too poly-based.  Let's try client snapshot reading
+	 instead.  There's playerState_t, a superset of entityState_t.
+       - Well, let's consider this in terms of the API SV_Trace()
+	 actually needs.
+	 - What does SV_Trace() use? -- it's maintaining an internal
+	   BSP of all the entities in the world.  I won't be doing
+	   that, but then again, it's to save server-side CPU.  I can
+	   waste it on the client-side happily with little ill effect.
 
-	  = typedef struct bsp_trace_s
-	  = {
-	  = 	qboolean		allsolid;	// if true, plane is not valid
-	  = 	qboolean		startsolid;	// if true, the initial point was in a solid area
-	  = 	float			fraction;	// time completed, 1.0 = didn't hit anything
-	  = 	vec3_t			endpos;		// final position
-	  = 	cplane_t		plane;		// surface normal at impact
-	  = 	float			exp_dist;	// expanded plane distance
-	  = 	int			sidenum;	// number of the brush side hit
-	  = 	bsp_surface_t	        surface;	// the hit point surface
-	  = 	int			contents;	// contents on other side of surface hit
-	  = 	int			ent;		// number of entity hit
-	  = } bsp_trace_t;
-	  - Note the last element `ent`, which corresponds to an
-            entityState_t. 
+	 - What can I use instead of the server-side BSP?
+	   - All I have is what the client receives.  I can scan that,
+             I suppose.  
+	 - Looking at the interface for BotImport_Trace(), the result
+           is stored in a parameter: bsp_trace_t *bsptrace, which is a
+           structure in botlib.h:
 
-    - I could sort all entities across the vector, and scan that ways:
-      nlogn * compare_time<entity>().
-      - What's the current representational shape of an entity?  And
-        that of the box being slid across the vector?
-        | Type | Sliding Box | Entity |
-        |------+-------------+--------|
-        | AABB | YUP         |        |
-        | OOBB |             |        |
+	   = typedef struct bsp_trace_s
+	   = {
+	   = 	qboolean		allsolid;	// if true, plane is not valid
+	   = 	qboolean		startsolid;	// if true, the initial point was in a solid area
+	   = 	float			fraction;	// time completed, 1.0 = didn't hit anything
+	   = 	vec3_t			endpos;		// final position
+	   = 	cplane_t		plane;		// surface normal at impact
+	   = 	float			exp_dist;	// expanded plane distance
+	   = 	int			sidenum;	// number of the brush side hit
+	   = 	bsp_surface_t	        surface;	// the hit point surface
+	   = 	int			contents;	// contents on other side of surface hit
+	   = 	int			ent;		// number of entity hit
+	   = } bsp_trace_t;
+	   - Note the last element `ent`, which corresponds to an
+             entityState_t. 
 
-  CM_Trace usage:
-    Called as:
-    | Arg             | Got? | Calculate |
-    |-----------------+------+-----------|
-    | &trace          |      |           |
-    | start_l         |      |           |
-    | end_l           |      |           |
-    | symetricSize[0] |      |           |
-    | symetricSize[1] |      |           |
-    | model           |      |           |
-    | origin          |      |           |
-    | brushmask       |      |           |
-    | capsule         |      |           |
-    |                 |      |           |
-    Called from CM_TransformedBoxTrace(
-    | Arg                   | Got? | Calculate |
-    |-----------------------+------+-----------|
-    | &trace                |      |           |
-    | (float *) clip->start |      |           |
-    | (float *) clip->end   |      |           |
-    | (float *) clip->mins  |      |           |
-    | (float *) clip->maxs  |      |           |
-    | clipHandle            |      |           |
-    | clip->contentmask     |      |           |
-    | origin                |      |           |
-    | angles                |      |           |
-    | clip->capsule         |      |           |
-    )
-    Called from SV_ClipMoveToEntities(moveclip_t)
-    
-    Called from SV_Trace
-      | Arg           | Origin |
-      |---------------+--------|
-      | contentmask   | arg    |
-      | start         | arg    |
-      | end           | arg    |
-      | mins          | arg    |
-      | maxs          | arg    |
-      | passEntityNum | arg    |
-      | capsule       | qfalse |
+     - I could sort all entities across the vector, and scan that ways:
+       nlogn * compare_time<entity>().
+       - What's the current representational shape of an entity?  And
+         that of the box being slid across the vector?
+         | Type | Sliding Box | Entity |
+         |------+-------------+--------|
+         | AABB | YUP         |        |
+         | OOBB |             |        |
+
+   CM_Trace usage:
+     Called as:
+     | Arg             | Got? | Calculate |
+     |-----------------+------+-----------|
+     | &trace          |      |           |
+     | start_l         |      |           |
+     | end_l           |      |           |
+     | symetricSize[0] |      |           |
+     | symetricSize[1] |      |           |
+     | model           |      |           |
+     | origin          |      |           |
+     | brushmask       |      |           |
+     | capsule         |      |           |
+     |                 |      |           |
+     Called from CM_TransformedBoxTrace(
+     | Arg                   | Got? | Calculate |
+     |-----------------------+------+-----------|
+     | &trace                |      |           |
+     | (float *) clip->start |      |           |
+     | (float *) clip->end   |      |           |
+     | (float *) clip->mins  |      |           |
+     | (float *) clip->maxs  |      |           |
+     | clipHandle            |      |           |
+     | clip->contentmask     |      |           |
+     | origin                |      |           |
+     | angles                |      |           |
+     | clip->capsule         |      |           |
+     )
+     Called from SV_ClipMoveToEntities(moveclip_t)
+     
+     Called from SV_Trace
+       | Arg           | Origin |
+       |---------------+--------|
+       | contentmask   | arg    |
+       | start         | arg    |
+       | end           | arg    |
+       | mins          | arg    |
+       | maxs          | arg    |
+       | passEntityNum | arg    |
+       | capsule       | qfalse |
 
 **** Source Analysis
      
@@ -533,9 +549,9 @@
 | >        VectorLengthSquared(tw.trace.plane.normal) > 0.9999);                                          |                             |
 | > *results = tw.trace;                                                                                  |                             |
 
-*** DONE BotImport_EntityTrace					    :LOADSIM:
-    "trace a bbox against a specific entity"
-    - Just a wrapper around SV_ClipToEntity
+**** DONE BotImport_EntityTrace					    :LOADSIM:
+     "trace a bbox against a specific entity"
+     - Just a wrapper around SV_ClipToEntity
 
 **** SV_ClipToEntity
      Calls SV_GentityNum
@@ -546,11 +562,80 @@
      [CM_InlineModel, CM_TempBoxModel]
      Calls CM_TransformedBoxTrace
 
-*** DONE BotImport_PointContents				    :LOADSIM:
-    Calls SV_PointContents(point, -1)
-    
-*** DONE BotImport_inPVS					    :LOADSIM:
-    Calls SV_inPVS(p1,p2)
+**** DONE BotImport_PointContents				    :LOADSIM:
+     Calls SV_PointContents(point, -1)
+     
+**** DONE BotImport_inPVS					    :LOADSIM:
+     Calls SV_inPVS(p1,p2)
 
+*** Movements
+    Surprisingly easy.  Just shove a usercmd_t into the client state,
+    and it'll get shoved across when it's time.
+
+* Headless Operation
+  A priority, as Xepher's unhappy with DISPLAY=:2.0
+  Initial questions
+** Where's the X window setup?
+   - At least some part is in R_Init() in renderer/tr_init.c
+   - Additionally, it looks like it's hooked in via
+     RE_BeginRegistration(), which is an implementation of a vtable
+     setup by GetRefAPI().  GetRefAPI()'s getting called from:
+
+** Where's the rendering?
+   - Uses for glVertex:
+     | File         | Use                                  |
+     |--------------+--------------------------------------|
+     | tr_surface.c | RB_SurfaceBeam, RB_SurfaceAxis       |
+     | tr_init.c    | glxInfo_f                            |
+     | tr_backend.c | RE_StretchRaw, RB_ShowImages         |
+     | tr_shadows.c | R_RenderShadowEdges, RB_ShadowFinish |
+     | tr_sky.c     |                                      |
+     | tr_shade.c   |                                      |
+     | tr_main.c    |                                      |
+   - Skip it.  It's all in the callbacks coming from tr_init.
+   - All calls to it are via the GetRefAPI() wrapper.  It's called
+     from cl_main.c:2879.  I can easily make that point somewhere
+     else.  Then it's a matter of stubbing out the APIs.
+
+    | API                     | E. Diff. | Status | Notes               |
+    |-------------------------+----------+--------+---------------------|
+    | Shutdown                | -        |        |                     |
+    | BeginRegistration       |          |        |                     |
+    | RegisterModel           | ?        |        | Returns a qhandle_t |
+    | RegisterSkin            | ?        |        | "                   |
+    | RegisterShader          | ?        |        | "                   |
+    | RegisterShaderNoMip     | ?        |        | "                   |
+    | LoadWorld               | -        |        |                     |
+    | SetWorldVisData         | -        |        |                     |
+    | EndRegistration         |          |        |                     |
+    | ClearScene              |          |        |                     |
+    | AddRefEntityToScene     |          |        |                     |
+    | AddPolyToScene          |          |        |                     |
+    | LightForPoint           |          |        |                     |
+    | AddLightToScene         |          |        |                     |
+    | AddAdditiveLightToScene |          |        |                     |
+    | RenderScene             |          |        |                     |
+    | SetColor                |          |        |                     |
+    | DrawStretchPic          |          |        |                     |
+    | DrawStretchRaw          |          |        |                     |
+    | UploadCinematic         |          |        |                     |
+    | BeginFrame              |          |        |                     |
+    | EndFrame                |          |        |                     |
+    | MarkFragments           |          |        |                     |
+    | LerpTag                 |          |        |                     |
+    | ModelBounds             |          |        |                     |
+    | RegisterFont            |          |        |                     |
+    | RemapShader             |          |        |                     |
+    | GetEntityToken          |          |        |                     |
+    | inPVS                   |          |        |                     |
+    | TakeVideoFrame          |          |        |                     | 
+
+     Note that I could just copy the entire subsystem and stub-out 99%
+     of the code.
+** Getting it done
+   Bug 1: r_fullscreen isn't setup.  I need to setup some console
+   variables, it seems.
+   Holy shit, the fucker's working.  I forgot sound.
+   
 * Random Scalability Notes
   - g_public.h:64 - Max clients must be <= 32 for 'singleClient'

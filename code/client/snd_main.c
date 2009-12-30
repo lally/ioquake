@@ -25,6 +25,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "snd_codec.h"
 #include "snd_local.h"
 #include "snd_public.h"
+#include "../ls/ls_render.h"
 
 cvar_t *s_volume;
 cvar_t *s_musicVolume;
@@ -453,7 +454,7 @@ void S_Init( void )
 	s_muteWhenMinimized = Cvar_Get( "s_muteWhenMinimized", "0", CVAR_ARCHIVE );
 
 	cv = Cvar_Get( "s_initsound", "1", 0 );
-	if( !cv->integer ) {
+	if( LS_Headless() || !cv->integer ) {
 		Com_Printf( "Sound disabled.\n" );
 	} else {
 

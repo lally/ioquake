@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // cl.input.c  -- builds an intended movement command to send to the server
 
 #include "client.h"
+#include "../ls/ls_core.h"
 
 unsigned	frame_msec;
 int			old_com_frameTime;
@@ -617,7 +618,12 @@ void CL_CreateNewCommands( void ) {
 	// generate a command for this frame
 	cl.cmdNumber++;
 	cmdNum = cl.cmdNumber & CMD_MASK;
-	cl.cmds[cmdNum] = CL_CreateCmd ();
+	if (LS_Enabled()) {
+		cl.cmds[cmdNum] = LS_CreateCmd ();
+	}
+	else {
+		cl.cmds[cmdNum] = CL_CreateCmd ();
+	}
 	cmd = &cl.cmds[cmdNum];
 }
 

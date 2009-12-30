@@ -23,6 +23,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "client.h"
 #include "../ls/ls_core.h"
+#include "../ls/ls_render.h"
 #include <limits.h>
 
 #ifdef USE_MUMBLE
@@ -2876,7 +2877,12 @@ void CL_InitRef( void ) {
   
 	ri.CL_WriteAVIVideoFrame = CL_WriteAVIVideoFrame;
 
-	ret = GetRefAPI( REF_API_VERSION, &ri );
+	if (LS_Headless()) {
+	  ret = LS_GetRefAPI((struct refimport_s*) &ri);
+	}
+	else {
+	  ret = GetRefAPI( REF_API_VERSION, &ri );
+	}
 
 #if defined __USEA3D && defined __A3D_GEOM
 	hA3Dg_ExportRenderGeom (ret);

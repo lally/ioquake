@@ -12,4 +12,6 @@ build/debug-sunos-i386/client/cl_main.o: code/client/cl_main.c \
   code/libspeex/include/speex/speex_types.h \
   code/libspeex/include/speex/speex_config_types.h \
   code/libspeex/include/speex/speex_preprocess.h \
-  code/client/libmumblelink.h
+  code/client/../ls/ls_core.h code/client/../ls/../qcommon/q_shared.h \
+  code/client/../ls/../botlib/botlib.h code/client/../ls/ls_render.h \
+  code/client/../ls/../renderer/tr_public.h code/client/libmumblelink.h

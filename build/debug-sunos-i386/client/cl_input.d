@@ -11,4 +11,6 @@ build/debug-sunos-i386/client/cl_input.o: code/client/cl_input.c \
   code/libspeex/include/speex/speex_bits.h \
   code/libspeex/include/speex/speex_types.h \
   code/libspeex/include/speex/speex_config_types.h \
-  code/libspeex/include/speex/speex_preprocess.h
+  code/libspeex/include/speex/speex_preprocess.h \
+  code/client/../ls/ls_core.h code/client/../ls/../qcommon/q_shared.h \
+  code/client/../ls/../botlib/botlib.h

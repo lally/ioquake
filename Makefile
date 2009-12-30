@@ -1365,6 +1365,7 @@ Q3OBJ = \
   \
   $(B)/client/ls_variables.o \
   $(B)/client/ls_core.o \
+  $(B)/client/ls_render.o \
   \
   $(B)/client/con_passive.o \
   $(B)/client/con_log.o \

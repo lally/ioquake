@@ -34,7 +34,7 @@ int   ls_pref_value(ls_pref_id id);
 char *ls_pref_name (ls_pref_id id);
 void *ls_pref_udata(ls_pref_id id);
 
-// MANIPULATOR
+// MANIPULATORS
 void  ls_pref_set  (ls_pref_id	 id,
 					char		*name,
 					int			 value,

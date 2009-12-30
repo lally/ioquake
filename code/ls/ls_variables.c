@@ -61,7 +61,8 @@ char ** ls_pref_load (int *args, char ** argv) {
 				if (!strcmp(s_prefs[pref].d_name, buffer)) {
 					// found the pref.
 					ls_pref_t *prefp = &s_prefs[pref];
-					fprintf(stderr, "ls_pref_load: found preference value %s=%s\n",
+					fprintf(stderr,
+							"ls_pref_load: found preference value %s=%s\n",
 							buffer, buf_eql);
 					prefp->d_state_comment = "command-line";
 					if (prefp->d_constructor) {

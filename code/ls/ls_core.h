@@ -15,9 +15,16 @@
 
 #include "../qcommon/q_shared.h"
 #include "../botlib/botlib.h"
+struct clientActive_s;
+struct clientStatic_s;
 
 qboolean LS_Initialize(botlib_export_t **result);
 qboolean LS_Enabled (void);
 qboolean LS_Connect (void);
+usercmd_t LS_CreateCmd (void);
 
+void ls_headless(qboolean enabled);
+void ls_simulate(qboolean enabled);
+
+void LS_SetPointers(struct clientActive_s *, struct clientStatic_s *);
 #endif /* INCLUDE_LS_CORE */

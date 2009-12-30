@@ -1,4 +1,5 @@
 #include "ls_core.h"
+#include "ls_variables.h"
 #include "../client/client.h"
 #include <assert.h>
 
@@ -7,9 +8,13 @@
   with the existing codebase (e.g., called instead of existing
   functions) are LS_.
 */
-static qboolean s_enabled;
+static qboolean s_enabled, s_queried;
 static botlib_export_t *s_botlib;
 static clientActive_t  *s_cl;
+static clientStatic_t  *s_cls;
+
+static unsigned	s_frame_msec;
+static int		s_old_com_frameTime;
 
 typedef struct bot_debugpoly_s {
 	int inuse;
@@ -22,11 +27,76 @@ typedef struct bot_debugpoly_s {
 //int s_bot_maxdebugpolys;
 
 qboolean LS_Enabled () {
+	if (!s_queried) {
+		s_queried = qtrue;
+		s_enabled = ls_pref_value(LSP_SIMULATOR);
+	}
 	return s_enabled && s_botlib;
 }
 
-void ls_set_pointers(clientActive_t *client_state) {
-	s_cl = client_state;
+qboolean LS_Connect () {
+	return qtrue;
+}
+
+/*****************************************************************************
+ * Client integration
+ *****************************************************************************/
+
+usercmd_t  LS_CreateCmd( void ) {
+	usercmd_t cmd;
+	vec3_t		oldAngles;
+	extern void CL_AdjustAngles(void);
+	extern void CL_FinishMove( usercmd_t *cmd );
+	
+	VectorCopy( cl.viewangles, oldAngles );
+
+	// keyboard angle adjustment
+	CL_AdjustAngles ();
+	
+	Com_Memset( &cmd, 0, sizeof( cmd ) );
+
+	// CL_CmdButtons( &cmd );
+	// Sets cmd->buttons |=
+	//          1 << (in_buttons[i].active || in_buttons[i].wasPressed).
+	// Also clears out in_buttons[i].wasPressed.
+	
+	// get basic movement from keyboard
+	//	CL_KeyMove( &cmd );
+	cmd.forwardmove = ClampChar(16);
+	cmd.rightmove = ClampChar(-64);
+
+	// get basic movement from mouse
+	//	CL_MouseMove( &cmd );
+	// Some of this is fancy, but I donno if we really need it.
+
+	// get basic movement from joystick
+	//	CL_JoystickMove( &cmd );
+
+	// check to make sure the angles haven't wrapped
+	if ( cl.viewangles[PITCH] - oldAngles[PITCH] > 90 ) {
+		cl.viewangles[PITCH] = oldAngles[PITCH] + 90;
+	} else if ( oldAngles[PITCH] - cl.viewangles[PITCH] > 90 ) {
+		cl.viewangles[PITCH] = oldAngles[PITCH] - 90;
+	} 
+
+	// store out the final values
+	CL_FinishMove( &cmd );
+
+	return cmd;	
+}
+
+/*****************************************************************************
+ * BOTLIB-CLIENT INTEGRATION SUPPORT
+ *****************************************************************************/
+void LS_SetPointers(struct clientActive_s *client_state,
+					struct clientStatic_s *client_static) {
+	if (client_state) {
+		s_cl = client_state;
+	}
+
+	if (client_static) {
+		s_cls = client_static;
+	}
 };
 
 static QDECL void ls_bi_print(int type, char *fmt, ...) {
@@ -63,10 +133,6 @@ static QDECL void ls_bi_print(int type, char *fmt, ...) {
 		break;
 	}
 	}
-}
-
-qboolean LS_Connect () {
-	return qtrue;
 }
 
 /*
@@ -441,7 +507,7 @@ void ls_trace(bsp_trace_t		*bsptrace,
 		bsptrace->allsolid = trace.allsolid;
 		bsptrace->startsolid = trace.startsolid;
 		bsptrace->fraction = trace.startsolid;
-		VectorCopy(bsptrace->endpos, trace.endpos);
+		VectorCopy(trace.endpos, bsptrace->endpos);
 		bsptrace->ent = trace.entityNum;
 	}
 	bsptrace->plane = trace.plane;

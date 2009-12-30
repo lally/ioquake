@@ -12,4 +12,6 @@ build/debug-sunos-i386/client/snd_main.o: code/client/snd_main.c \
   code/libspeex/include/speex/speex_types.h \
   code/libspeex/include/speex/speex_config_types.h \
   code/libspeex/include/speex/speex_preprocess.h code/client/snd_codec.h \
-  code/client/snd_local.h
+  code/client/snd_local.h code/client/../ls/ls_render.h \
+  code/client/../ls/../qcommon/q_shared.h \
+  code/client/../ls/../renderer/tr_public.h
