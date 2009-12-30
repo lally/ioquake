@@ -1293,6 +1293,10 @@ CL_RequestMotd
 void CL_RequestMotd( void ) {
 	char		info[MAX_INFO_STRING];
 
+	if (LS_Headless()) {
+		// don't bother if we're headless, it's a closed simulation.
+		return;
+	}
 	if ( !cl_motd->integer ) {
 		return;
 	}

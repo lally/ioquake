@@ -1296,7 +1296,9 @@ static void SV_VerifyPaks_f( client_t *cl ) {
 
 		cl->gotCP = qtrue;
 
-		if (bGood) {
+		// Not interested in purity-related issues.  I've got some patches
+		// in these .pk3s. -ls
+		if (qtrue || bGood) {
 			cl->pureAuthentic = 1;
 		} 
 		else {

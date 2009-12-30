@@ -60,7 +60,7 @@
    - cl_parse.c:CL_ParseServerMessage
    - cl_parse.c:CL_ParseSnapshot
    - 
-* Simulation
+* Simulation								:DEV:
 ** AI link-in to sv-main.
    - Maybe the easiest way is to just have my own routine feed in?
    - Some sort of configuration management is needed here.
@@ -572,7 +572,7 @@
     Surprisingly easy.  Just shove a usercmd_t into the client state,
     and it'll get shoved across when it's time.
 
-* Headless Operation
+* DONE Headless Operation
   A priority, as Xepher's unhappy with DISPLAY=:2.0
   Initial questions
 ** Where's the X window setup?
@@ -632,10 +632,42 @@
 
      Note that I could just copy the entire subsystem and stub-out 99%
      of the code.
-** Getting it done
-   Bug 1: r_fullscreen isn't setup.  I need to setup some console
-   variables, it seems.
-   Holy shit, the fucker's working.  I forgot sound.
+** DONE Getting it done
+   - Bug 1: r_fullscreen isn't setup.  I need to setup some console
+     variables, it seems.
+   - Holy shit, the fucker's working.  I forgot sound.
+   - Sound's up.
    
+* Command-line Execution
+  TOPLEVEL: These are console commands, how to run from the command
+  line? 
+  - There's already likely a way
+  - I just need to expose them simply.
+  - + signs are separators, just like \n
+  Comment from common.c:353:
+
+  COMMAND LINE FUNCTIONS
+
+  + characters seperate the commandLine string into multiple console
+    command lines.
+
+    All of these are valid:
+
+    quake3 +set test blah +map test
+    quake3 set test blah+map test
+    quake3 set test blah + map test
+
+** DONE Run the client from the command line, with no user interaction
+   - What's the connect() string like?
+     cl_main.c:1510: Com_Printf( "usage: connect [-4|-6] server\n");
+   - [X] Wrap that fucker in a shell script
+     - Yup, called build/client.sh  Need to add in the option for
+       running botlib, however.
+     - [X] Stop this nslookup for update.quake3arena.com first
+
+  - SUCCESS! The client runs, automatically logs in, and respawns.
+
+** TODO Run the server from the command line, with no user interaction
+
 * Random Scalability Notes
   - g_public.h:64 - Max clients must be <= 32 for 'singleClient'
