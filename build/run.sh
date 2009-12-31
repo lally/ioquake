@@ -1,5 +1,7 @@
 #!/bin/bash
 
+echo "I hope you unset LANG"
+
 if [[ $# -lt 1 ]]
 then 
   NEWDISP=:1.0

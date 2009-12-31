@@ -3043,6 +3043,9 @@ CL_Init
 void CL_Init( void ) {
 	Com_Printf( "----- Client Initialization -----\n" );
 
+	LS_SetPointers(&cl, &cls);
+	botlib_export_t *asofyet_unused;
+	LS_Initialize(&asofyet_unused);
 	Con_Init ();
 
 	CL_ClearState ();

@@ -638,14 +638,15 @@
    - Holy shit, the fucker's working.  I forgot sound.
    - Sound's up.
    
-* Command-line Execution
+* DONE Command-line Execution
   TOPLEVEL: These are console commands, how to run from the command
   line? 
   - There's already likely a way
   - I just need to expose them simply.
   - + signs are separators, just like \n
-  Comment from common.c:353:
 
+  Comment from common.c:353:
+  --------------------------------------------------------------------------
   COMMAND LINE FUNCTIONS
 
   + characters seperate the commandLine string into multiple console
@@ -656,7 +657,17 @@
     quake3 +set test blah +map test
     quake3 set test blah+map test
     quake3 set test blah + map test
+  --------------------------------------------------------------------------
 
+** NOTE: Port Numbers
+   Sometimes the client won't connect unless it has the right port #
+   for the right instance of quake.  This shouldn't be a problem for
+   big-simulation, as there will only be one instance on the server
+   vhost. 
+
+   Still, if there's a problem, the server's log will show which port
+   it could connect to.  Then run the client with a host_ip:host_port
+   command-line 
 ** DONE Run the client from the command line, with no user interaction
    - What's the connect() string like?
      cl_main.c:1510: Com_Printf( "usage: connect [-4|-6] server\n");
@@ -666,8 +677,56 @@
      - [X] Stop this nslookup for update.quake3arena.com first
 
   - SUCCESS! The client runs, automatically logs in, and respawns.
+    Holy Fuck.
 
-** TODO Run the server from the command line, with no user interaction
+  - use +set name "Foo" to set the client's name.
+  - Full example:
+    DISPLAY=:1.0 ./ioquake3.i386 lsp_headless=1 lsp_simulator=1
+    +connect 24.103.248.74:27961 +set name "Simulator1" &
+    (note that DISPLAY=:1.0 isn't actually used at all, but it's safer
+    in case I screw something else up)
 
+** DONE Run the server from the command line, with no user interaction
+   First guess at the right routine: SV_Startup sv_init.c:268
+   - Called only by: SV_SpawnServer sv_init.c:404
+   - Called in: sv_ccmds.c:204,268.
+   
+   | Command     | Function       | Desc |
+   |-------------+----------------+------|
+   | heartbeat   | SV_Heartbeat_f |      |
+   | kick        | SV_Kick_f      |      |
+   | banUser     | SV_Ban_f       |      |
+   | banClient   | SV_BanNum_f    |      |
+   | clientkick  | SV_Kick_f      |      |
+   | status      | SV_Status_f    |      |
+   | serverinfo  |                |      |
+   | systeminfo  |                |      |
+   | dumpuser    |                |      |
+   | map_restart |                |      |
+   | sectorlist  |                |      |
+   | map         |                |      |
+   | killserver  |                |      |
+   | say         |                |      |
+   | rehashbans  |                |      |
+   | listbans    |                |      |
+   | banaddr     |                |      |
+   | exceptaddr  |                |      |
+   | bandel      |                |      |
+   | exceptdel   |                |      |
+   | flushbans   |                |      | 
+  
+   - Odd, doesn't the server have a dedicated server mode?
+     I'm a moron.
+     ./ioq3ded.i386 +map q3dm1
+
+
+* TODO AI Client
+** DONE Wire-up lsp_simulator=1 to my stub Create-Command function
+** TODO Initialize BotLib
+*** DONE Fill in function pointers
+*** TODO Initialize data structures for bots
+** Use botlib for 
+*** TODO Call botlib during client-side simulation
+*** TODO Wire up command-creation from botlib
 * Random Scalability Notes
   - g_public.h:64 - Max clients must be <= 32 for 'singleClient'
