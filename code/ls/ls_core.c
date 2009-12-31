@@ -88,6 +88,15 @@ usercmd_t  LS_CreateCmd( void ) {
 /*****************************************************************************
  * BOTLIB-CLIENT INTEGRATION SUPPORT
  *****************************************************************************/
+void LS_SetBot(const char *name,
+			   double skill,
+			   const char *team,
+			   int delay,
+			   char *altnum) {
+	// modeled after G_AddBot.
+
+}
+
 void LS_SetPointers(struct clientActive_s *client_state,
 					struct clientStatic_s *client_static) {
 	if (client_state) {

@@ -555,6 +555,144 @@ qboolean G_BotConnect( int clientNum, qboolean restart ) {
 	return qtrue;
 }
 
+/*
+  LSMOD: Added here, as it's on the opposite side of the VM, and this
+  can make things much easier.
+ */
+void Client_AddBot(int client_nr,
+				   const char *name,
+				   float skill,
+				   const char *team,
+				   int delay,
+				   char *altname) {
+	// Create a new Bot to control the current client.  The actual
+	// mapping-back of commands will have to be separate.
+	
+	int				clientNum;
+	char			*botinfo;
+	gentity_t		*bot;
+	char			*key;
+	char			*s;
+	char			*botname;
+	char			*model;
+	char			*headmodel;
+	char			userinfo[MAX_INFO_STRING];
+
+	// get the botinfo from bots.txt
+	botinfo = G_GetBotInfoByName( name );
+	if ( !botinfo ) {
+		G_Printf( S_COLOR_RED "Error: Bot '%s' not defined\n", name );
+		return;
+	}
+
+	// create the bot's userinfo
+	userinfo[0] = '\0';
+
+	botname = Info_ValueForKey( botinfo, "funname" );
+	if( !botname[0] ) {
+		botname = Info_ValueForKey( botinfo, "name" );
+	}
+	// check for an alternative name
+	if (altname && altname[0]) {
+		botname = altname;
+	}
+	Info_SetValueForKey( userinfo, "name", botname );
+	Info_SetValueForKey( userinfo, "rate", "25000" );
+	Info_SetValueForKey( userinfo, "snaps", "20" );
+	Info_SetValueForKey( userinfo, "skill", va("%1.2f", skill) );
+
+	if ( skill >= 1 && skill < 2 ) {
+		Info_SetValueForKey( userinfo, "handicap", "50" );
+	}
+	else if ( skill >= 2 && skill < 3 ) {
+		Info_SetValueForKey( userinfo, "handicap", "70" );
+	}
+	else if ( skill >= 3 && skill < 4 ) {
+		Info_SetValueForKey( userinfo, "handicap", "90" );
+	}
+
+	key = "model";
+	model = Info_ValueForKey( botinfo, key );
+	if ( !*model ) {
+		model = "visor/default";
+	}
+	Info_SetValueForKey( userinfo, key, model );
+	key = "team_model";
+	Info_SetValueForKey( userinfo, key, model );
+
+	key = "headmodel";
+	headmodel = Info_ValueForKey( botinfo, key );
+	if ( !*headmodel ) {
+		headmodel = model;
+	}
+	Info_SetValueForKey( userinfo, key, headmodel );
+	key = "team_headmodel";
+	Info_SetValueForKey( userinfo, key, headmodel );
+
+	key = "gender";
+	s = Info_ValueForKey( botinfo, key );
+	if ( !*s ) {
+		s = "male";
+	}
+	Info_SetValueForKey( userinfo, "sex", s );
+
+	key = "color1";
+	s = Info_ValueForKey( botinfo, key );
+	if ( !*s ) {
+		s = "4";
+	}
+	Info_SetValueForKey( userinfo, key, s );
+
+	key = "color2";
+	s = Info_ValueForKey( botinfo, key );
+	if ( !*s ) {
+		s = "5";
+	}
+	Info_SetValueForKey( userinfo, key, s );
+
+	s = Info_ValueForKey(botinfo, "aifile");
+	if (!*s ) {
+		trap_Printf( S_COLOR_RED "Error: bot has no aifile specified\n" );
+		return;
+	}
+
+	clientNum = client_nr;
+	if ( clientNum == -1 ) {
+		G_Printf( S_COLOR_RED "Unable to add bot.  "
+				  "All player slots are in use.\n" );
+		G_Printf( S_COLOR_RED "Start server with more "
+				  "'open' slots (or check setting of sv_maxclients cvar).\n" );
+		return;
+	}
+
+	// initialize the bot settings
+	if( !team || !*team ) {
+		if( g_gametype.integer >= GT_TEAM ) {
+			if( PickTeam(clientNum) == TEAM_RED) {
+				team = "red";
+			}
+			else {
+				team = "blue";
+			}
+		}
+		else {
+			team = "red";
+		}
+	}
+	Info_SetValueForKey( userinfo, "characterfile", Info_ValueForKey( botinfo, "aifile" ) );
+	Info_SetValueForKey( userinfo, "skill", va( "%5.2f", skill ) );
+	Info_SetValueForKey( userinfo, "team", team );
+
+	bot = &g_entities[ clientNum ];
+	// I may have to turn this back on, depending on who's using it.
+	//	bot->r.svFlags |= SVF_BOT;
+	bot->inuse = qtrue;
+
+	// register the userinfo
+	trap_SetUserinfo( clientNum, userinfo );
+
+	AddBotToSpawnQueue( clientNum, delay );
+}
 
 /*
 ===============
