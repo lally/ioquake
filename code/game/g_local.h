@@ -969,3 +969,7 @@ int		trap_GeneticParentsAndChildSelection(int numranks, float *ranks, int *paren
 
 void	trap_SnapVector( float *v );
 
+void    trap_Metrics_SimTotal(int count);
+void    trap_Metrics_SimPlayers(int count);
+void    trap_Metrics_Coreloop_Start();
+void    trap_Metrics_Coreloop_End();

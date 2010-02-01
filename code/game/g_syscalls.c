@@ -788,3 +788,18 @@ int trap_PC_ReadToken( int handle, pc_token_t *pc_token ) {
 int trap_PC_SourceFileAndLine( int handle, char *filename, int *line ) {
 	return syscall( BOTLIB_PC_SOURCE_FILE_AND_LINE, handle, filename, line );
 }
+
+void trap_Metrics_SimTotal(int count) {
+	return syscall( METRICS_SIM_TOTAL, count);
+}
+void trap_Metrics_SimPlayers(int count) {
+	return syscall( METRICS_SIM_PLAYERS, count);
+}
+
+void trap_Metrics_Coreloop_Start() {
+	return syscall( METRICS_CORELOOP_START );
+}
+
+void trap_Metrics_Coreloop_End() {
+	return syscall( METRICS_CORELOP_END );
+}

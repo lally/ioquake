@@ -1581,6 +1581,11 @@ void CL_Connect_f( void ) {
 	clc.connectTime = -99999;	// CL_CheckForResend() will fire immediately
 	clc.connectPacketCount = 0;
 
+	if (LS_Enabled()) {
+		VM_Call(
+
+	}
+	
 	// server connection string
 	Cvar_Set( "cl_currentServerAddress", server );
 }

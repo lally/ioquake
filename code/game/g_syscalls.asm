@@ -223,3 +223,8 @@ equ trap_BotLibFreeSource				-580
 equ trap_BotLibReadToken				-581
 equ trap_BotLibSourceFileAndLine		-582
  
+equ trap_Metrics_SimTotal                       -583
+equ trap_Metrics_SimPlayers                     -584
+equ trap_Metrics_Coreloop_Start                 -585
+equ trap_Metrics_Coreloop_End                   -586
+	

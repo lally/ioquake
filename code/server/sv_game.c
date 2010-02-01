@@ -22,7 +22,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // sv_game.c -- interface to the game dll
 
 #include "server.h"
-
+#include "../quake_provider.h"
 #include "../botlib/botlib.h"
 
 botlib_export_t	*botlib_export;
@@ -847,6 +847,21 @@ intptr_t SV_GameSystemCalls( intptr_t *args ) {
 	case TRAP_CEIL:
 		return FloatAsInt( ceil( VMF(1) ) );
 
+	case METRICS_SIM_TOTAL:
+		QUAKE_SIM_TOTAL(args[0]);
+		return 0;
+		
+	case METRICS_SIM_PLAYERS:
+		QUAKE_SIM_PLAYERS(args[0]);
+		return 0;
+		
+	case METRICS_CORELOOP_START:
+		QUAKE_CORE_LOOP_START();
+		return 0;
+		
+	case METRICS_CORELOOP_END:
+		QUAKE_CORE_LOOP_END();
+		return 0;
 
 	default:
 		Com_Error( ERR_DROP, "Bad game system trap: %ld", (long int) args[0] );

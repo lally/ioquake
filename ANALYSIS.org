@@ -32,7 +32,8 @@
    | BOTAI_START_FRAME   | game/g_main.c    | BotAIStartFrame       |
    | BOTLIB_USER_COMMAND | server/sv_game.c | SV_ClientThink        |
    | GAME_CLIENT_THINK   | game/g_main.c    | ClientThink           |
-   | GAME_CLIENT_COMMAND | game/g_main.c    | ClientCommand         | 
+   | GAME_CLIENT_COMMAND | game/g_main.c    | ClientCommand         |
+   | GAME_RUN_FRAME      | game/g_main.c    | G_RunFrame            |
 
 ** Key Data Structures
    | Name          | Location   | Purpose                           |
@@ -48,6 +49,27 @@
    - 'tr' in tr_main.c seems to maintain the draw graph.  NO, it's the
      vtable. 
    - "RE" is the "refresh" module.  tr_public.h:30
+** Snapshotting
+*** SV_EmitPacketEntities
+    Scans a pair of entity lists (well, really offsets into the same
+    list) , and encodes a delta-set into a 'msg_t'.  Handles entity
+    +/- deltas between lists.
+*** SV_WriteSnapshotToClient
+    Encodes header-data and the player state, and then calls
+    SV_EmitPacketEntities 
+*** SV_AddEntitiesVisibleFromPoint
+    Builds a list of entities visible from a given position
+*** SV_BuildClientSnapshot
+    sv_snapshot.c:446 Driver.  Builds a snapshot by calling
+    SV_AddEntitiesVisibleFromPoint, sorting them by entity number.
+    Finally, updates svs.snapshotEntities[next % num] to be the same
+    entityState_t (value) as svs.gentities[i].
+*** SV_SendClientMessage
+    Iterates over all clients, and either:
+    - sends the next fragment, if there is one for that client
+    - calls SV_BuildClientSnapshot
+    Clearly the latter can create fragments.  
+
 * Networking
   see cg_snapshot.c
   - Note: L245 in cg_snapshot.c: CG_BuildSolidList().  Does this thing
@@ -451,39 +473,129 @@
      ./ioq3ded.i386 +map q3dm1
 
 
-* TODO AI Client						    :LOADSIM:
+* TODO AI Client [33%] 						    :LOADSIM:
 ** DONE Wire-up lsp_simulator=1 to my stub Create-Command function
-** TODO Initialize BotLib
+** TODO Initialize BotLib [50%]
 *** DONE Fill in function pointers
 *** TODO Initialize data structures for bots
     - Check out G_AddBot g_bot.c:564, copy its contents, alter as
       needed. 
     - I (/think/ I) really just need to add a properly-initialized
       value to g_entities (g_main.c:38).
-** TODO Use botlib for client-side simulation
+** TODO Use botlib for client-side simulation [0%]
    See SV_BotFrame(), called by SV_Frame() in sv_main.c
    SV_BotFrame() just calls VM_CALL(.., BOTAI_START_FRAME, ..);
    -> ai_main.c:1379 - BotAIStartFrame(int time)
       BotAIStartFrame() is the *PRIMARY* routine for bot computation. 
 
+*** Rough outline of what to do
+    1) in CL_Init(), call VM_Call( *QUESTION*, CLIENT_SETAI,
+       *QUESTION*)
+    2) Make the VM call in CL_Frame if I'm simulating
+    3) Translate the resulting botlib commands back to usercmd_ts and
+       transmit them as our own.
+*** VM Questions
+**** There are three:
+	| VM Name | Var      | Desc |
+	|---------+----------+------|
+	| uivm    | vm_ui    |      |
+	| cgvm    | vm_cgame |      |
+	| gvm     | vm_game  |      |
+**** Which one holds botlib?					       :HACK:
+     The system one.  Can I access it from the client?
+     - Look at initialization
+     - Currently, no.  I may be able to later.  *WARNING* I may have
+       to implement/initialize some traps for botlib to call back into
+       the C runtime (as it's not otherwise used on the client side).
+     - See SV_GameSystemCalls sv_game.c:303
+       Write a new routine for system calls, copy-paste the botlib
+       handlers (and standard-looking ones).  assert(0) on the rest.
+**** OPEN QUESTION routines [66%]
+***** TODO BOTLIB_GET_SNAPSHOT_ENTITY
+      SV_BotGetSnapshotEntity
+      WTF is it doing?
+      Two args (client, sequence)
+      Final eqn:
+      svs.snapshotEntities[
+        (frame->first_entity+sequence) % svs.numSnapshotEntities
+       ].number
+      snapshotEntities is an array of entityState_t.
+      To figure this out, I'll have to understand how
+      snapshotting works, exactly.
+
+      AH.  For the given client 'client', it returns the nth
+      entity sent to it, in the /order the entity snapshots were
+      sent/. 
+
+      Note that it returns 'sequence+1'
+      BotAI() -> BotDeathmatchAI() -> BotCheckSnapshot() 
+      -> BotAI_GetSnapshotEntity() -> 
+
+      - [X] Can I get away with just one valid value for 'client' ?
+	    - So far, I'm only seeing this method called from a child
+              of 'BotDeathmatchAI()', which we probably won't use.
+              WRONG, it's called from BotAI, which sounds pretty
+              important. Called for every bot.  We only have one, so
+              can we get away with this?
+	    - YES.  It's only caring about its own setting.
+      - [ ] Do I need more information than what the client already
+            has? 
+	    - Well, 'g_entities' has a entityShared_t, which we don't
+              get on the client.  And that's used quite a bit in
+              botlib. 
+	    - Does it NEED it?
+	   
+***** DONE BOTLIB_GET_CONSOLE_MESSAGE:
+      SV_BotGetConsoleMessage
+***** DONE BOTLIB_USER_COMMAND
+      SV_CLientThink
+
 *** TODO Note that I'll have to build a .pk3 for the new routines
-    Some are vm-side.  Thankfully I wrote down the procedure somewhere
-    for this.  On paper, I believe.  I'll have to add a new ENUM for
-    it. 
-    - Existing path: 
-      VM ->ConsoleCommand() -> Svcmd_AddBot_f() -> G_AddBot().
-    - Our path: the same one used for command-line arguments
-      That's setup in CL_Init(), which we're already modifying pretty
-      heavily for setting up our normal state.
+    - Some are vm-side.  Thankfully I wrote down the procedure
+      somewhere for this.  On paper, I believe.  I'll have to add a
+      new ENUM for it.
+      - Existing path: 
+	VM ->ConsoleCommand() -> Svcmd_AddBot_f() -> G_AddBot().
+      - Our path: the same one used for command-line arguments That's
+        setup in CL_Init(), which we're already modifying pretty
+        heavily for setting up our normal state.
+    - Consider making a new vm'd .c file for this stuff. Look at the
+      visibility of data structures, etc. for this.
 
 *** TODO Call botlib during client-side simulation
     - [ ] Call the VM function, just like SV_BotFrame() did.
 	  - See CL_Frame() for where to do it.
-    - [ ] Figure out where the return value from the botlib init
+    - [X] Figure out where the return value from the botlib init
 	  routine is used.  My guess is it's fed into the/a vm
           somehow? 
     
 *** TODO Wire up command-creation from botlib
     - [ ] Convert the resulting botlib commands back into usercmd_ts.
+
+
+* TODO Instrumentation
+  I got a little help from Adam Leventhal (creator of dtrace(1))
+  on this one.  
+
+  HOWTO: native-side, regular dtrace probes.  vm-side, traps from
+  g_public's gameImport_t.
+
+  - [ ] Number of objects under simulation
+    - [ ] Total count
+    - [ ] Number of logged-in players
+  - [ ] Core loop time
+  - [ ] Per-player simulation time
+  - [ ] Per-(nonplayer) object simulation time
+    - [ ] Projectiles
+  - [ ] Per-player synchronization time
+  - [ ] Total memory used
+	(this is based on observing the sizes reported from top(1)).
+  - [ ] Total bandwidth
+    - [ ] In
+    - [ ] Out
+    - [ ] Counters for each
+
 * Random Scalability Notes
   - g_public.h:64 - Max clients must be <= 32 for 'singleClient'
+  - I've seen other uses of a maxclient=32, such as using a normal
+    uint32_t for a bitmask for clients (snapshotting, I believe).

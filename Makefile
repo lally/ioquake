@@ -1369,7 +1369,8 @@ Q3OBJ = \
   \
   $(B)/client/con_passive.o \
   $(B)/client/con_log.o \
-  $(B)/client/sys_main.o
+  $(B)/client/sys_main.o \
+  $(B)/quake_provider.o
 
 ifeq ($(ARCH),i386)
   Q3OBJ += \
@@ -1566,7 +1567,8 @@ Q3DOBJ = \
   $(B)/ded/null_snddma.o \
   \
   $(B)/ded/con_log.o \
-  $(B)/ded/sys_main.o
+  $(B)/ded/sys_main.o \
+  $(B)/quake_provider.o
 
 ifeq ($(ARCH),i386)
   Q3DOBJ += \
