@@ -862,6 +862,11 @@ echo_cmd=@echo
 Q=@
 endif
 
+define DO_DTRACE
+$(echo_cmd) "dtrace $<"
+dtrace -o $@ -c $<
+endef
+
 define DO_CC
 $(echo_cmd) "CC $<"
 $(Q)$(CC) $(NOTSHLIBCFLAGS) $(CFLAGS) -o $@ -c $<
@@ -1370,7 +1375,7 @@ Q3OBJ = \
   $(B)/client/con_passive.o \
   $(B)/client/con_log.o \
   $(B)/client/sys_main.o \
-  $(B)/quake_provider.o
+  $(B)/client/quake_provider.o
 
 ifeq ($(ARCH),i386)
   Q3OBJ += \
@@ -1904,8 +1909,7 @@ $(B)/missionpack/vm/ui.qvm: $(MPUIVMOBJ) $(UIDIR)/ui_syscalls.asm $(Q3ASM)
 #############################################################################
 ## CLIENT/SERVER RULES
 #############################################################################
-
-$(B)/client/%.o: $(ASMDIR)/%.s
+(B)/client/%.o: $(ASMDIR)/%.s
 	$(DO_AS)
 
 $(B)/client/%.o: $(CDIR)/%.c
@@ -1916,6 +1920,9 @@ $(B)/client/%.o: $(SDIR)/%.c
 
 $(B)/client/%.o: $(CMDIR)/%.c
 	$(DO_CC)
+
+$(B)/client/%.o: $(LSDIR)/%.d
+	$(DO_DTRACE)
 
 $(B)/client/%.o: $(LSDIR)/%.c
 	$(DO_CC)
