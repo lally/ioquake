@@ -1,0 +1,30 @@
+/*
+ * IOQuake3 DTrace Provider
+ */
+provider quake {
+	/*************************************************************
+	 * SIMULATION PROBES
+	 */
+
+	probe sim__total(int); /* (nr total objects simulated)
+							sv_main.c:878*/
+
+	probe sim__players(int); /* (nr players simulated) */
+ 
+	probe core_loop__start();
+	probe core_loop__end();
+
+	probe sim__player__start();
+	probe sim__player__end();
+
+	probe sim__proj__start();
+	probe sim__proj__end();
+
+	probe sim__item__start();
+	probe sim__item__end();
+
+	probe net__player__start(int nr, int real);
+	probe net__player__end(int nr);
+	
+};
+
