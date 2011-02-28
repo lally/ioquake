@@ -22,6 +22,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // sv_client.c -- server code for dealing with clients
 
 #include "server.h"
+#include "../ls/quake_provider.h"
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <inttypes.h>
 
 static void SV_CloseDownload( client_t *cl );
 
@@ -516,6 +520,15 @@ gotnewcl:
 
 	// save the address
 	Netchan_Setup (NS_SERVER, &newcl->netchan , from, qport);
+
+	if (QUAKE_CHAN_MARK_ENABLED()) {
+		int channel = (int) &newcl->netchan;
+		int ip = ntohl(* (uint32_t*) from.ip);
+		int port = from.port;
+		int nr = clientNum;
+		QUAKE_CHAN_MARK(channel, ip, port, nr);
+	}
+	
 	// init the netchan queue
 	newcl->netchan_end_queue = &newcl->netchan_start_queue;
 

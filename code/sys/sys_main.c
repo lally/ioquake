@@ -47,6 +47,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "../qcommon/q_shared.h"
 #include "../qcommon/qcommon.h"
 #include "../ls/ls_variables.h"
+#include "../ls/ls_met.h"
+#include "../ls/quake_provider.h"
 
 static char binaryPath[ MAX_OSPATH ] = { 0 };
 static char installPath[ MAX_OSPATH ] = { 0 };
@@ -497,6 +499,8 @@ void Sys_SigHandler( int signal )
 	Sys_Exit( 0 ); // Exit with 0 to avoid recursive signals
 }
 
+static const char *freq_pattern = "CoreLoop: %3.2fms, %d samples\n";
+
 /*
 =================
 main
@@ -506,9 +510,16 @@ int main( int argc, char **argv )
 {
 	int   i;
 	char  commandLine[ MAX_STRING_CHARS ] = { 0 };
-
+	struct MET_Freq *freq;
+	
 	// Look for any of my arguments first.
 	argv = ls_pref_load(&argc, argv);
+	MET_Init(MET_GlobalFile(), "ioquake.met");
+	
+	freq = (struct MET_Freq*) malloc( sizeof(struct MET_Freq) +
+									  (sizeof(double) * 1024));
+	MET_FreqInit(freq, MET_GlobalFile(),
+				 freq_pattern, 1024);
 	
 #ifndef DEDICATED
 	// SDL version check
@@ -561,6 +572,8 @@ int main( int argc, char **argv )
 
 	while( 1 )
 	{
+		MET_FreqSample(freq);
+		QUAKE_CORE_LOOP_START();
 #ifndef DEDICATED
 		int appState = SDL_GetAppState( );
 
@@ -568,8 +581,12 @@ int main( int argc, char **argv )
 		Cvar_SetValue( "com_minimized", !( appState & SDL_APPACTIVE ) );
 #endif
 
-		IN_Frame( );
-		Com_Frame( );
+		IN_Frame( ); // (LS) Input processing
+		Com_Frame( ); // (LS) Everything else.
+
+		MET_ClientCount();
+		
+		QUAKE_CORE_LOOP_END();
 	}
 
 	return 0;

@@ -1,0 +1,34 @@
+;; Object sdl/
+;; SEMANTICDB Tags save file
+(semanticdb-project-database-file "sdl/"
+  :tables (list 
+   (semanticdb-table "sdl_input.c"
+    :major-mode 'c-mode
+    :tags '(("SDL.h" include (:system-flag t) nil [1025 1042]) ("stdarg.h" include (:system-flag t) nil [1051 1070]) ("stdio.h" include (:system-flag t) nil [1071 1089]) ("stdlib.h" include (:system-flag t) nil [1090 1109]) ("../renderer/tr_local.h" include nil nil [1111 1144]) ("../client/client.h" include nil nil [1145 1174]) ("../sys/sys_local.h" include nil nil [1175 1204]) ("ARRAYLEN" variable (:constant-flag t) nil [1214 1614]) ("in_keyboardDebug" variable (:pointer 1 :typemodifiers ("static") :default-value "NULL;" :type ("cvar_t" type (:type "class") nil nil)) nil [1608 1651]) ("stick" variable (:pointer 1 :typemodifiers ("static") :default-value "NULL;" :type ("SDL_Joystick" type (:type "class") nil nil)) nil [1653 1687]) ("mouseAvailable" variable (:typemodifiers ("static") :default-value "qfalse;" :type ("qboolean" type (:type "class") nil nil)) nil [1689 1729]) ("mouseActive" variable (:typemodifiers ("static") :default-value "qfalse;" :type ("qboolean" type (:type "class") nil nil)) nil [1730 1767]) ("keyRepeatEnabled" variable (:typemodifiers ("static") :default-value "qfalse;" :type ("qboolean" type (:type "class") nil nil)) nil [1768 1810]) ("in_mouse" variable (:pointer 1 :typemodifiers ("static") :default-value "NULL;" :type ("cvar_t" type (:type "class") nil nil)) nil [1812 1855]) ("in_nograb" variable (:pointer 1 :typemodifiers ("static") :type ("cvar_t" type (:type "class") nil nil)) nil [1987 2012]) ("in_joystick" variable (:pointer 1 :typemodifiers ("static") :default-value "NULL;" :type ("cvar_t" type (:type "class") nil nil)) nil [2014 2057]) ("in_joystickDebug" variable (:pointer 1 :typemodifiers ("static") :default-value "NULL;" :type ("cvar_t" type (:type "class") nil nil)) nil [2058 2101]) ("in_joystickThreshold" variable (:pointer 1 :typemodifiers ("static") :default-value "NULL;" :type ("cvar_t" type (:type "class") nil nil)) nil [2102 2145]) ("in_joystickNo" variable (:pointer 1 :typemodifiers ("static") :default-value "NULL;" :type ("cvar_t" type (:type "class") nil nil)) nil [2146 2189]) ("CTRL" variable (:constant-flag t) nil [2199 2276]) ("IN_PrintKey" function (:typemodifiers ("static") :arguments (("keysym" variable (:pointer 1 :constant-flag t :type ("SDL_keysym" type (:type "class") nil nil)) (reparse-symbol arg-sub-list) [2295 2320]) ("key" variable (:type ("keyNum_t" type (:type "class") nil nil)) (reparse-symbol arg-sub-list) [2321 2334]) ("down" variable (:type ("qboolean" type (:type "class") nil nil)) (reparse-symbol arg-sub-list) [2335 2350])) :type "void") nil [2270 3536]) ("MAX_CONSOLE_KEYS" variable (:constant-flag t) nil [3546 3627]) ("IN_IsConsoleKey" function (:typemodifiers ("static") :arguments (("key" variable (:type ("keyNum_t" type (:type "class") nil nil)) (reparse-symbol arg-sub-list) [3654 3667]) ("character" variable (:constant-flag t :type "unsigned char") (reparse-symbol arg-sub-list) [3668 3699])) :type ("qboolean" type (:type "class") nil nil)) nil [3621 5087]) ("IN_TranslateSDLToQ3Key" function (:pointer 1 :typemodifiers ("static") :constant-flag t :arguments (("keysym" variable (:pointer 1 :type ("SDL_keysym" type (:type "class") nil nil)) (reparse-symbol arg-sub-list) [5193 5212]) ("key" variable (:pointer 1 :type ("keyNum_t" type (:type "class") nil nil)) (reparse-symbol arg-sub-list) [5214 5228]) ("down" variable (:type ("qboolean" type (:type "class") nil nil)) (reparse-symbol arg-sub-list) [5229 5244])) :type "char") nil [5150 10401]) ("IN_GobbleMotionEvents" function (:typemodifiers ("static") :arguments (("" variable (:type "void") (reparse-symbol arg-sub-list) [11163 11169])) :type "void") nil [11128 11343]) ("IN_ActivateMouse" function (:typemodifiers ("static") :arguments (("" variable (:type "void") (reparse-symbol arg-sub-list) [11430 11436])) :type "void") nil [11400 13264]) ("IN_DeactivateMouse" function (:typemodifiers ("static") :arguments (("" variable (:type "void") (reparse-symbol arg-sub-list) [13355 13361])) :type "void") nil [13323 14518]) ("joy_keys" variable (:dereference 1 :typemodifiers ("static") :default-value "{
+	K_LEFTARROW, K_RIGHTARROW,
+	K_UPARROW, K_DOWNARROW,
+	K_JOY16, K_JOY17,
+	K_JOY18, K_JOY19,
+	K_JOY20, K_JOY21,
+	K_JOY22, K_JOY23,
+
+	K_JOY24, K_JOY25,
+	K_JOY26, K_JOY27
+}" :type "int") nil [14566 14763]) ("hat_keys" variable (:dereference 1 :typemodifiers ("static") :default-value "{
+	K_JOY29, K_JOY30,
+	K_JOY31, K_JOY32,
+	K_JOY25, K_JOY26,
+	K_JOY27, K_JOY28,
+	K_JOY21, K_JOY22,
+	K_JOY23, K_JOY24,
+	K_JOY17, K_JOY18,
+	K_JOY19, K_JOY20
+}" :type "int") nil [14861 15042]) ("stick_state" variable (:type ("" type (:members (("buttons" variable (:dereference 1 :type ("qboolean" type (:type "class") nil nil)) (reparse-symbol classsubparts) [15055 15076]) ("oldaxes" variable (:type "unsigned int") (reparse-symbol classsubparts) [15118 15139]) ("oldhats" variable (:type "unsigned int") (reparse-symbol classsubparts) [15141 15162])) :type "struct") nil nil)) nil [15045 15177]) ("IN_InitJoystick" function (:typemodifiers ("static") :arguments (("" variable (:type "void") (reparse-symbol arg-sub-list) [15263 15269])) :type "void") nil [15234 16689]) ("IN_ShutdownJoystick" function (:typemodifiers ("static") :arguments (("" variable (:type "void") (reparse-symbol arg-sub-list) [16782 16788])) :type "void") nil [16749 16894]) ("IN_JoyMove" function (:typemodifiers ("static") :arguments (("" variable (:type "void") (reparse-symbol arg-sub-list) [16969 16975])) :type "void") nil [16945 22003]) ("IN_ProcessEvents" function (:typemodifiers ("static") :arguments (("" variable (:type "void") (reparse-symbol arg-sub-list) [22090 22096])) :type "void") nil [22060 23763]) ("IN_Frame" function (:arguments (("" variable (:type "void") (reparse-symbol arg-sub-list) [23827 23833])) :type "void") nil [23812 24432]) ("IN_Init" function (:arguments (("" variable (:type "void") (reparse-symbol arg-sub-list) [24494 24500])) :type "void") nil [24480 25614]) ("IN_Shutdown" function (:arguments (("" variable (:type "void") (reparse-symbol arg-sub-list) [25684 25690])) :type "void") nil [25666 25770]) ("IN_Restart" function (:arguments (("" variable (:type "void") (reparse-symbol arg-sub-list) [25838 25844])) :type "void") nil [25821 25886]))
+    :file "sdl_input.c"
+    :pointmax 25887
+    )
+   )
+  :file "semantic.cache"
+  :semantic-tag-version "2.0pre4"
+  :semanticdb-version "2.0pre4"
+  )

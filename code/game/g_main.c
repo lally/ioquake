@@ -1727,7 +1727,8 @@ void G_RunFrame( int levelTime ) {
 	int			i;
 	gentity_t	*ent;
 	int			msec;
-int start, end;
+	int start, end;
+	int nr_players;
 
 	// if we are waiting for the level to restart, do nothing
 	if ( level.restarted ) {
@@ -1738,7 +1739,8 @@ int start, end;
 	level.previousTime = level.time;
 	level.time = levelTime;
 	msec = level.time - level.previousTime;
-
+	nr_players = 0;
+	
 	// get any cvar changes
 	G_UpdateCvars();
 
@@ -1747,6 +1749,8 @@ int start, end;
 	//
 	start = trap_Milliseconds();
 	ent = &g_entities[0];
+	trap_Metrics_SimTotal(level.num_entities);
+	
 	for (i=0 ; i<level.num_entities ; i++, ent++) {
 		if ( !ent->inuse ) {
 			continue;
@@ -1784,22 +1788,28 @@ int start, end;
 		}
 
 		if ( ent->s.eType == ET_MISSILE ) {
+			trap_Metrics_Projectile_Start();
 			G_RunMissile( ent );
+			trap_Metrics_Projectile_End();
 			continue;
 		}
 
 		if ( ent->s.eType == ET_ITEM || ent->physicsObject ) {
+			trap_Metrics_Item_Start();
 			G_RunItem( ent );
+			trap_Metrics_Item_End();
 			continue;
 		}
 
 		if ( ent->s.eType == ET_MOVER ) {
+			trap_Metrics_AI_Start();
 			G_RunMover( ent );
+			trap_Metrics_AI_End();
 			continue;
 		}
 
 		if ( i < MAX_CLIENTS ) {
-			G_RunClient( ent );
+			nr_players += G_RunClient( ent );
 			continue;
 		}
 
@@ -1807,6 +1817,8 @@ int start, end;
 	}
 end = trap_Milliseconds();
 
+ trap_Metrics_SimPlayers(nr_players);
+ 
 start = trap_Milliseconds();
 	// perform final fixups on the players
 	ent = &g_entities[0];
@@ -1843,3 +1855,6 @@ end = trap_Milliseconds();
 		trap_Cvar_Set("g_listEntity", "0");
 	}
 }
+
+
+// (LS) Miscellaneous bullshit.

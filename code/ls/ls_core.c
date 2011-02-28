@@ -2,6 +2,7 @@
 #include "ls_variables.h"
 #include "../client/client.h"
 #include <assert.h>
+#include "../game/g_public.h"
 
 /*
   Quick convention:  New APIs are ls_, and ones designed to interact
@@ -89,6 +90,7 @@ usercmd_t  LS_CreateCmd( void ) {
  * BOTLIB-CLIENT INTEGRATION SUPPORT
  *****************************************************************************/
 intptr_t LS_GameSystemCalls(intptr_t *args) {
+	/*
 	// modeled after SV_GameSystemCalls().
 	switch( args[0] ) {
 	case G_PRINT:
@@ -612,7 +614,7 @@ intptr_t LS_GameSystemCalls(intptr_t *args) {
 				   (long int) args[0] );
 	}
 	return -1;	
-
+*/
 }
 
 void LS_SetPointers(struct clientActive_s *client_state,

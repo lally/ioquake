@@ -580,20 +580,29 @@
   HOWTO: native-side, regular dtrace probes.  vm-side, traps from
   g_public's gameImport_t.
 
-  - [ ] Number of objects under simulation
-    - [ ] Total count
-    - [ ] Number of logged-in players
-  - [ ] Core loop time
-  - [ ] Per-player simulation time
-  - [ ] Per-(nonplayer) object simulation time
-    - [ ] Projectiles
-  - [ ] Per-player synchronization time
-  - [ ] Total memory used
+  See status.org for the real status of these:
+
+  - Number of objects under simulation
+    - Total count
+    - Number of logged-in players
+  - Core loop time
+  - Per-player simulation time
+  - Per-(nonplayer) object simulation time
+    - Projectiles
+  - Per-player synchronization time
+  - Total memory used
 	(this is based on observing the sizes reported from top(1)).
-  - [ ] Total bandwidth
-    - [ ] In
-    - [ ] Out
-    - [ ] Counters for each
+  - Total bandwidth
+    - In
+    - Out
+    - Counters for each
+
+  I'm modifying the VM environment with new traps (at the end, so it
+  won't break backwards compat), but I'll have to build new .pk3 files
+  to handle my changes.  
+  
+  I can do a git status-compare against the original checkin to see what
+  I've changed.
 
 * Random Scalability Notes
   - g_public.h:64 - Max clients must be <= 32 for 'singleClient'

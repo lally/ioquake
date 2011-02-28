@@ -239,7 +239,7 @@ ifeq ($(PLATFORM),linux)
   endif
 
   BASE_CFLAGS = -Wall -fno-strict-aliasing -Wimplicit -Wstrict-prototypes \
-    -pipe -DUSE_ICON $(shell sdl-config --cflags)
+    -pipe -DUSE_ICON $(shell sdl-config --cflags) -DNO_VM_COMPILED
 
   ifeq ($(USE_OPENAL),1)
     BASE_CFLAGS += -DUSE_OPENAL
@@ -266,13 +266,13 @@ ifeq ($(PLATFORM),linux)
       -falign-loops=2 -falign-jumps=2 -falign-functions=2 \
       -fstrength-reduce
     # experimental x86_64 jit compiler! you need GNU as
-    HAVE_VM_COMPILED = true
+    #HAVE_VM_COMPILED = true
   else
   ifeq ($(ARCH),i386)
     OPTIMIZE = -O3 -march=i586 -fomit-frame-pointer -ffast-math \
       -funroll-loops -falign-loops=2 -falign-jumps=2 \
       -falign-functions=2 -fstrength-reduce
-    HAVE_VM_COMPILED=true
+    #HAVE_VM_COMPILED=true
   else
   ifeq ($(ARCH),ppc)
     BASE_CFLAGS += -maltivec
@@ -285,7 +285,7 @@ ifeq ($(PLATFORM),linux)
   endif
   endif
 
-  ifneq ($(HAVE_VM_COMPILED),true)
+  ifneq ($(HAVE_VM_COMPILED),false)
     BASE_CFLAGS += -DNO_VM_COMPILED
   endif
 
@@ -345,7 +345,7 @@ ifeq ($(PLATFORM),darwin)
   CLIENT_LIBS=
   OPTIMIZE=
   
-  BASE_CFLAGS = -Wall -Wimplicit -Wstrict-prototypes
+  BASE_CFLAGS = -Wall -Wimplicit -Wstrict-prototypes -DNO_VM_COMPILED
 
   ifeq ($(ARCH),ppc)
     BASE_CFLAGS += -faltivec
@@ -401,7 +401,7 @@ ifeq ($(PLATFORM),darwin)
 
   OPTIMIZE += -ffast-math -falign-loops=16
 
-  ifneq ($(HAVE_VM_COMPILED),true)
+  ifneq ($(HAVE_VM_COMPILED),false)
     BASE_CFLAGS += -DNO_VM_COMPILED
   endif
 
@@ -433,7 +433,7 @@ ifeq ($(PLATFORM),mingw32)
   ARCH=x86
 
   BASE_CFLAGS = -Wall -fno-strict-aliasing -Wimplicit -Wstrict-prototypes \
-    -DUSE_ICON
+    -DUSE_ICON -DNO_VM_COMPILED
 
   # In the absence of wspiapi.h, require Windows XP or later
   ifeq ($(shell test -e $(CMDIR)/wspiapi.h; echo $$?),1)
@@ -526,7 +526,7 @@ ifeq ($(PLATFORM),freebsd)
 
 
   BASE_CFLAGS = -Wall -fno-strict-aliasing -Wimplicit -Wstrict-prototypes \
-    -DUSE_ICON $(shell sdl-config --cflags)
+    -DUSE_ICON $(shell sdl-config --cflags) -DNO_VM_COMPILED
 
   ifeq ($(USE_OPENAL),1)
     BASE_CFLAGS += -DUSE_OPENAL
@@ -592,7 +592,7 @@ ifeq ($(PLATFORM),openbsd)
 
 
   BASE_CFLAGS = -Wall -fno-strict-aliasing -Wimplicit -Wstrict-prototypes \
-    -DUSE_ICON $(shell sdl-config --cflags)
+    -DUSE_ICON $(shell sdl-config --cflags) -DNO_VM_COMPILED
 
   ifeq ($(USE_OPENAL),1)
     BASE_CFLAGS += -DUSE_OPENAL
@@ -653,7 +653,7 @@ ifeq ($(PLATFORM),netbsd)
   SHLIBLDFLAGS=-shared $(LDFLAGS)
   THREAD_LIBS=-lpthread
 
-  BASE_CFLAGS = -Wall -fno-strict-aliasing -Wimplicit -Wstrict-prototypes
+  BASE_CFLAGS = -Wall -fno-strict-aliasing -Wimplicit -Wstrict-prototypes -DNO_VM_COMPILED
 
   ifneq ($(ARCH),i386)
     BASE_CFLAGS += -DNO_VM_COMPILED
@@ -718,7 +718,7 @@ ifeq ($(PLATFORM),sunos)
 
 
   BASE_CFLAGS = -Wall -fno-strict-aliasing -Wimplicit -Wstrict-prototypes \
-    -pipe -DUSE_ICON $(shell sdl-config --cflags)
+    -pipe -DUSE_ICON $(shell sdl-config --cflags) -DNO_VM_COMPILED
 
   OPTIMIZE = -O3 -ffast-math -funroll-loops
 
@@ -862,14 +862,15 @@ echo_cmd=@echo
 Q=@
 endif
 
-define DO_DTRACE
-$(echo_cmd) "dtrace $<"
-dtrace -o $@ -c $<
-endef
 
 define DO_CC
 $(echo_cmd) "CC $<"
 $(Q)$(CC) $(NOTSHLIBCFLAGS) $(CFLAGS) -o $@ -c $<
+endef
+
+define DO_DTRACE
+$(echo_cmd) "DTRACE $<"
+dtrace -G -32 -o $@ -c $<
 endef
 
 define DO_SMP_CC
@@ -1371,11 +1372,11 @@ Q3OBJ = \
   $(B)/client/ls_variables.o \
   $(B)/client/ls_core.o \
   $(B)/client/ls_render.o \
+  $(B)/client/ls_met.o \
   \
   $(B)/client/con_passive.o \
   $(B)/client/con_log.o \
-  $(B)/client/sys_main.o \
-  $(B)/client/quake_provider.o
+  $(B)/client/sys_main.o 
 
 ifeq ($(ARCH),i386)
   Q3OBJ += \
@@ -1478,15 +1479,19 @@ Q3POBJ_SMP += \
   $(B)/clientsmp/sdl_glimp.o
 
 $(B)/ioquake3.$(ARCH)$(BINEXT): $(Q3OBJ) $(Q3POBJ) $(LIBSDLMAIN)
-	$(echo_cmd) "LD $@"
+	$(echo_cmd) "LD $@ (1)"
+	cp code/ls/quake_provider.dtrace /tmp/quake_provider.d
+	dtrace -G -32 -s /tmp/quake_provider.d $(Q3OBJ) $(Q3POBJ) $(LIBSDLMAIN)
 	$(Q)$(CC) $(CLIENT_CFLAGS) $(CFLAGS) $(CLIENT_LDFLAGS) $(LDFLAGS) \
-		-o $@ $(Q3OBJ) $(Q3POBJ) \
+		-o $@ $(Q3OBJ) $(Q3POBJ) quake_provider.o \
 		$(LIBSDLMAIN) $(CLIENT_LIBS) $(LIBS)
 
 $(B)/ioquake3-smp.$(ARCH)$(BINEXT): $(Q3OBJ) $(Q3POBJ_SMP) $(LIBSDLMAIN)
-	$(echo_cmd) "LD $@"
+	$(echo_cmd) "LD $@ (2)"
+	cp code/ls/quake_provider.dtrace /tmp/quake_provider.d
+	dtrace -G -32 -s /tmp/quake_provider.d $(Q3OBJ) $(Q3POBJ) $(LIBSDLMAIN)
 	$(Q)$(CC) $(CLIENT_CFLAGS) $(CFLAGS) $(CLIENT_LDFLAGS) $(LDFLAGS) $(THREAD_LDFLAGS) \
-		-o $@ $(Q3OBJ) $(Q3POBJ_SMP) \
+		-o $@ $(Q3OBJ) $(Q3POBJ_SMP) quake_provider.o \
 		$(THREAD_LIBS) $(LIBSDLMAIN) $(CLIENT_LIBS) $(LIBS)
 
 ifneq ($(strip $(LIBSDLMAIN)),)
@@ -1566,14 +1571,14 @@ Q3DOBJ = \
   $(B)/ded/l_struct.o \
   \
   $(B)/ded/ls_variables.o \
+  $(B)/ded/ls_met.o \
   \
   $(B)/ded/null_client.o \
   $(B)/ded/null_input.o \
   $(B)/ded/null_snddma.o \
   \
   $(B)/ded/con_log.o \
-  $(B)/ded/sys_main.o \
-  $(B)/quake_provider.o
+  $(B)/ded/sys_main.o 
 
 ifeq ($(ARCH),i386)
   Q3DOBJ += \
@@ -1618,8 +1623,10 @@ else
 endif
 
 $(B)/ioq3ded.$(ARCH)$(BINEXT): $(Q3DOBJ)
-	$(echo_cmd) "LD $@"
-	$(Q)$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(Q3DOBJ) $(LIBS)
+	$(echo_cmd) "LD $@ (3)"
+	cp code/ls/quake_provider.dtrace /tmp/quake_provider.d
+	dtrace -G -32 -s /tmp/quake_provider.d $(Q3DOBJ) 
+	$(Q)$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(Q3DOBJ) $(LIBS) quake_provider.o 
 
 
 
@@ -1909,7 +1916,7 @@ $(B)/missionpack/vm/ui.qvm: $(MPUIVMOBJ) $(UIDIR)/ui_syscalls.asm $(Q3ASM)
 #############################################################################
 ## CLIENT/SERVER RULES
 #############################################################################
-(B)/client/%.o: $(ASMDIR)/%.s
+$(B)/client/%.o: $(ASMDIR)/%.s
 	$(DO_AS)
 
 $(B)/client/%.o: $(CDIR)/%.c
@@ -1920,9 +1927,6 @@ $(B)/client/%.o: $(SDIR)/%.c
 
 $(B)/client/%.o: $(CMDIR)/%.c
 	$(DO_CC)
-
-$(B)/client/%.o: $(LSDIR)/%.d
-	$(DO_DTRACE)
 
 $(B)/client/%.o: $(LSDIR)/%.c
 	$(DO_CC)

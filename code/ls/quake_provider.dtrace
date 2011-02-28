@@ -2,9 +2,11 @@
  * IOQuake3 DTrace Provider
  */
 provider quake {
-	/*************************************************************
-	 * SIMULATION PROBES
+	/************************************************************
+	 * CPU/TIMING PROBES
 	 */
+	
+	/* SIMULATION PROBES */
 
 	probe sim__total(int); /* (nr total objects simulated)
 							sv_main.c:878*/
@@ -14,17 +16,38 @@ provider quake {
 	probe core_loop__start();
 	probe core_loop__end();
 
-	probe sim__player__start();
-	probe sim__player__end();
-
+	probe sim__player__start(); /* called when we're starting a
+								   simulation run on a player, before we know
+								   if it's needed */
+	probe sim__player__abort(); /* called when we determine that we
+								   don't need to actually do the simulation */
+	
+	probe sim__player__end(); /* called when we've done the simulation
+								 work */
+	
 	probe sim__proj__start();
 	probe sim__proj__end();
 
 	probe sim__item__start();
 	probe sim__item__end();
 
-	probe net__player__start(int nr, int real);
+	probe sim__ai__start();
+	probe sim__ai__end();
+
+	/* Synchronization Probes */
+	probe net__player__start(int, int); /* player #, real?1:0 */
 	probe net__player__end(int nr);
+
+	/*************************************************************
+	 * NETWORK I/O PROBES
+	 */
+
+	probe chan__mark(int, int, int, int); /* (void*) channel,
+											 int ip,
+											 int port,
+											 int client ID */
+	probe chan__send(int, int, int); /* int ip, int port, , int byte_count */
+	probe chan__recv(int, int, int); /* int ip, int port, int byte_count */
 	
 };
 

@@ -760,12 +760,16 @@ void ClientThink_real( gentity_t *ent ) {
 	int			msec;
 	usercmd_t	*ucmd;
 
+	
 	client = ent->client;
 
 	// don't think if the client is not yet connected (and thus not yet spawned in)
 	if (client->pers.connected != CON_CONNECTED) {
 		return;
 	}
+
+	trap_Metrics_Player_Start(); 
+	
 	// mark the time, so the connection sprite can be removed
 	ucmd = &ent->client->pers.cmd;
 
@@ -783,6 +787,7 @@ void ClientThink_real( gentity_t *ent ) {
 	// following others may result in bad times, but we still want
 	// to check for follow toggles
 	if ( msec < 1 && client->sess.spectatorState != SPECTATOR_FOLLOW ) {
+		trap_Metrics_Player_Abort(); 
 		return;
 	}
 	if ( msec > 200 ) {
@@ -807,20 +812,24 @@ void ClientThink_real( gentity_t *ent ) {
 	//
 	if ( level.intermissiontime ) {
 		ClientIntermissionThink( client );
+		trap_Metrics_Player_Abort(); 
 		return;
 	}
 
 	// spectators don't do much
 	if ( client->sess.sessionTeam == TEAM_SPECTATOR ) {
 		if ( client->sess.spectatorState == SPECTATOR_SCOREBOARD ) {
+			trap_Metrics_Player_Abort(); 
 			return;
 		}
 		SpectatorThink( ent, ucmd );
+		trap_Metrics_Player_Abort(); 
 		return;
 	}
 
 	// check for inactivity timer, but never drop the local client of a non-dedicated server
 	if ( !ClientInactivityTimer( client ) ) {
+		trap_Metrics_Player_Abort(); 
 		return;
 	}
 
@@ -1002,6 +1011,7 @@ void ClientThink_real( gentity_t *ent ) {
 			if ( g_forcerespawn.integer > 0 && 
 				( level.time - client->respawnTime ) > g_forcerespawn.integer * 1000 ) {
 				respawn( ent );
+				trap_Metrics_Player_End(); 
 				return;
 			}
 		
@@ -1011,11 +1021,13 @@ void ClientThink_real( gentity_t *ent ) {
 				respawn( ent );
 				//}
 		}
+		trap_Metrics_Player_End(); 
 		return;
 	}
 
 	// perform once-a-second actions
 	ClientTimerActions( ent, msec );
+	trap_Metrics_Player_End(); 
 }
 
 /*
@@ -1041,12 +1053,13 @@ void ClientThink( int clientNum ) {
 }
 
 
-void G_RunClient( gentity_t *ent ) {
+int G_RunClient( gentity_t *ent ) {
 	if ( !(ent->r.svFlags & SVF_BOT) && !g_synchronousClients.integer ) {
-		return;
+		return 0;
 	}
 	ent->client->pers.cmd.serverTime = level.time;
 	ClientThink_real( ent );
+	return 1;
 }
 
 

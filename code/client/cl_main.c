@@ -1582,8 +1582,6 @@ void CL_Connect_f( void ) {
 	clc.connectPacketCount = 0;
 
 	if (LS_Enabled()) {
-		VM_Call(
-
 	}
 	
 	// server connection string
@@ -3050,7 +3048,7 @@ void CL_Init( void ) {
 
 	LS_SetPointers(&cl, &cls);
 	botlib_export_t *asofyet_unused;
-	LS_Initialize(&asofyet_unused);
+	//	LS_Initialize(&asofyet_unused);
 	Con_Init ();
 
 	CL_ClearState ();

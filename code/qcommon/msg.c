@@ -21,11 +21,11 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 #include "q_shared.h"
 #include "qcommon.h"
-
+#include "../ls/ls_met.h"
 static huffman_t		msgHuff;
 
 static qboolean			msgInit = qfalse;
-
+static struct MET_Counter metEmitted;
 int pcount[256];
 
 /*
@@ -48,6 +48,8 @@ void MSG_Init( msg_t *buf, byte *data, int length ) {
 	Com_Memset (buf, 0, sizeof(*buf));
 	buf->data = data;
 	buf->maxsize = length;
+	MET_CounterInit(&metEmitted, MET_GlobalFile(),
+					"Emitted entities: %3.2f\n");
 }
 
 void MSG_InitOOB( msg_t *buf, byte *data, int length ) {
@@ -1183,7 +1185,7 @@ void MSG_WriteDeltaPlayerstate( msg_t *msg, struct playerState_s *from, struct p
 	int				*fromF, *toF;
 	float			fullFloat;
 	int				trunc, lc;
-
+	int total_written;
 	if (!from) {
 		from = &dummy;
 		Com_Memset (&dummy, 0, sizeof(dummy));
@@ -1193,6 +1195,7 @@ void MSG_WriteDeltaPlayerstate( msg_t *msg, struct playerState_s *from, struct p
 
 	numFields = sizeof( playerStateFields ) / sizeof( playerStateFields[0] );
 
+	total_written = 0;
 	lc = 0;
 	for ( i = 0, field = playerStateFields ; i < numFields ; i++, field++ ) {
 		fromF = (int *)( (byte *)from + field->offset );
@@ -1215,6 +1218,7 @@ void MSG_WriteDeltaPlayerstate( msg_t *msg, struct playerState_s *from, struct p
 			continue;
 		}
 
+		total_written++;
 		MSG_WriteBits( msg, 1, 1 );	// changed
 //		pcount[i]++;
 
@@ -1269,6 +1273,8 @@ void MSG_WriteDeltaPlayerstate( msg_t *msg, struct playerState_s *from, struct p
 		}
 	}
 
+	MET_CounterSample(&metEmitted, total_written);
+	
 	if (!statsbits && !persistantbits && !ammobits && !powerupbits) {
 		MSG_WriteBits( msg, 0, 1 );	// no change
 		oldsize += 4;

@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "../qcommon/q_shared.h"
 #include "../qcommon/qcommon.h"
+#include "../ls/quake_provider.h"
 
 #ifdef _WIN32
 #	include <winsock2.h>
@@ -77,6 +78,9 @@ static qboolean	winsockInitialized = qfalse;
 #	endif
 
 #	ifdef __sun
+#   include <sys/types.h>
+#   include <netinet/in.h>
+#   include <inttypes.h>
 #		include <sys/filio.h>
 #	endif
 
@@ -541,6 +545,9 @@ qboolean Sys_GetPacket( netadr_t *net_from, msg_t *net_message ) {
 			}
 			
 			net_message->cursize = ret;
+			QUAKE_CHAN_RECV(ntohl(* (uint32_t*) net_from->ip),
+							net_from->port,
+							net_message->cursize);
 			return qtrue;
 		}
 	}

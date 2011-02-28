@@ -790,16 +790,49 @@ int trap_PC_SourceFileAndLine( int handle, char *filename, int *line ) {
 }
 
 void trap_Metrics_SimTotal(int count) {
-	return syscall( METRICS_SIM_TOTAL, count);
+	syscall( METRICS_SIM_TOTAL, count);
 }
 void trap_Metrics_SimPlayers(int count) {
-	return syscall( METRICS_SIM_PLAYERS, count);
+	 syscall( METRICS_SIM_PLAYERS, count);
 }
 
 void trap_Metrics_Coreloop_Start() {
-	return syscall( METRICS_CORELOOP_START );
+	 syscall( METRICS_CORELOOP_START );
 }
 
 void trap_Metrics_Coreloop_End() {
-	return syscall( METRICS_CORELOP_END );
+	 syscall( METRICS_CORELOOP_END );
+}
+
+void    trap_Metrics_Player_Start(void) {
+	 syscall( METRICS_SIM_PLAYER_START );
+}
+
+void    trap_Metrics_Player_Abort(void) {
+	syscall( METRICS_SIM_PLAYER_ABORT );
+}
+void    trap_Metrics_Player_End(void) {
+	 syscall( METRICS_SIM_PLAYER_END );
+}
+
+void    trap_Metrics_Projectile_Start(void) {
+	 syscall( METRICS_SIM_PROJECTILE_START );
+}
+void    trap_Metrics_Projectile_End(void) {
+	 syscall( METRICS_SIM_PROJECTILE_END );
+}
+
+void    trap_Metrics_Item_Start(void) {
+	 syscall( METRICS_SIM_ITEM_START );
+}
+void    trap_Metrics_Item_End(void) {
+	syscall( METRICS_SIM_ITEM_END );
+}
+
+void trap_Metrics_AI_Start(void) {
+	syscall(METRICS_SIM_AI_START);
+}
+
+void trap_Metrics_AI_End(void) {
+	syscall(METRICS_SIM_AI_END);
 }

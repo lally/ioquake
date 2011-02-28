@@ -23,6 +23,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "server.h"
 
 #include "../ls/ls_variables.h"
+#include "../ls/ls_met.h"
 
 #ifdef USE_VOIP
 cvar_t *sv_voip;
@@ -96,6 +97,35 @@ char	*SV_ExpandNewlines( char *in ) {
 
 	return string;
 }
+
+void MET_ClientCount (void) {
+	struct timeval now;
+	FILE * log;
+	
+	gettimeofday(&now, 0);
+
+	log = MET_GlobalFile()->file;
+	if (MET_tv_sub(&svs.last_cnt_xmit, &now) >= 1.0) {
+		fprintf(log, "Client count: %d\n", svs.numSnapshotEntities);
+		svs.last_cnt_xmit = now;
+	}
+
+	/*	if (MET_tv_sub(&svs.last_density_xmit, &now) >= 5.0) {
+		int cnt = svs.numSnapshotEntities;
+		int i;
+		for (i=0; i<cnt; ++i) {
+			vec3_t *origin = &svs.snapshotEntities[i].origin;
+			fprintf(log, "Entity: %3.2f %3.2f %3.2f\n",
+					(*origin)[0], (*origin)[1], (*origin)[2]);
+		}
+		svs.last_density_xmit = now;
+		} */
+	
+	MET_Flush(MET_GlobalFile());
+}
+
+
+
 
 /*
 ======================

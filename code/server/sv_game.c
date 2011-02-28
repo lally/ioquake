@@ -22,7 +22,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // sv_game.c -- interface to the game dll
 
 #include "server.h"
-#include "../quake_provider.h"
+#include "../ls/quake_provider.h"
 #include "../botlib/botlib.h"
 
 botlib_export_t	*botlib_export;
@@ -851,10 +851,11 @@ intptr_t SV_GameSystemCalls( intptr_t *args ) {
 		QUAKE_SIM_TOTAL(args[0]);
 		return 0;
 		
-	case METRICS_SIM_PLAYERS:
-		QUAKE_SIM_PLAYERS(args[0]);
+	case METRICS_SIM_PLAYERS: {
+		MET_SimPlayers(args[1]);
+		QUAKE_SIM_PLAYERS(args[1]);
 		return 0;
-		
+	}
 	case METRICS_CORELOOP_START:
 		QUAKE_CORE_LOOP_START();
 		return 0;
@@ -863,6 +864,42 @@ intptr_t SV_GameSystemCalls( intptr_t *args ) {
 		QUAKE_CORE_LOOP_END();
 		return 0;
 
+	case METRICS_SIM_PLAYER_START:
+		QUAKE_SIM_PLAYER_START();
+		return 0;
+		
+	case METRICS_SIM_PLAYER_ABORT:
+		QUAKE_SIM_PLAYER_ABORT();
+		return 0;
+		
+	case METRICS_SIM_PLAYER_END:
+		QUAKE_SIM_PLAYER_END();
+		return 0;
+		
+	case METRICS_SIM_PROJECTILE_START:
+		QUAKE_SIM_PROJ_START();
+		return 0;
+
+	case METRICS_SIM_PROJECTILE_END:
+		QUAKE_SIM_PROJ_END();
+		return 0;
+		
+	case METRICS_SIM_ITEM_START:
+		QUAKE_SIM_ITEM_START();
+		return 0;
+		
+	case METRICS_SIM_ITEM_END:
+		QUAKE_SIM_ITEM_END();
+		return 0;
+
+	case METRICS_SIM_AI_START:
+		QUAKE_SIM_AI_START();
+		return 0;
+		
+	case METRICS_SIM_AI_END:
+		QUAKE_SIM_AI_END();
+		return 0;
+		
 	default:
 		Com_Error( ERR_DROP, "Bad game system trap: %ld", (long int) args[0] );
 	}

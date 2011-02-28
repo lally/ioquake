@@ -22,6 +22,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "q_shared.h"
 #include "qcommon.h"
+#include "../ls/quake_provider.h"
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <inttypes.h>
 
 /*
 
@@ -575,6 +579,9 @@ void NET_FlushPacketQueue(void)
 		now = Sys_Milliseconds();
 		if(packetQueue->release >= now)
 			break;
+		QUAKE_CHAN_SEND(ntohl(* (uint32_t*) packetQueue->to.ip),
+						packetQueue->to.port,
+						packetQueue->length);
 		Sys_SendPacket(packetQueue->length, packetQueue->data,
 			packetQueue->to);
 		last = packetQueue;
@@ -601,7 +608,7 @@ void NET_SendPacket( netsrc_t sock, int length, const void *data, netadr_t to ) 
 	if ( to.type == NA_BAD ) {
 		return;
 	}
-
+	
 	if ( sock == NS_CLIENT && cl_packetdelay->integer > 0 ) {
 		NET_QueuePacket( length, data, to, cl_packetdelay->integer );
 	}
@@ -609,6 +616,9 @@ void NET_SendPacket( netsrc_t sock, int length, const void *data, netadr_t to ) 
 		NET_QueuePacket( length, data, to, sv_packetdelay->integer );
 	}
 	else {
+		QUAKE_CHAN_SEND(ntohl(* (uint32_t*) to.ip),
+						to.port,
+						length);
 		Sys_SendPacket( length, data, to );
 	}
 }

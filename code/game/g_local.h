@@ -642,7 +642,7 @@ void ClientCommand( int clientNum );
 //
 void ClientThink( int clientNum );
 void ClientEndFrame( gentity_t *ent );
-void G_RunClient( gentity_t *ent );
+int  G_RunClient( gentity_t *ent );
 
 //
 // g_team.c
@@ -971,5 +971,19 @@ void	trap_SnapVector( float *v );
 
 void    trap_Metrics_SimTotal(int count);
 void    trap_Metrics_SimPlayers(int count);
-void    trap_Metrics_Coreloop_Start();
-void    trap_Metrics_Coreloop_End();
+void    trap_Metrics_Coreloop_Start(void);
+void    trap_Metrics_Coreloop_End(void);
+
+void    trap_Metrics_Player_Start(void);
+void    trap_Metrics_Player_Abort(void);
+void    trap_Metrics_Player_End(void);
+
+void    trap_Metrics_Projectile_Start(void);
+void    trap_Metrics_Projectile_End(void);
+
+void    trap_Metrics_Item_Start(void);
+void    trap_Metrics_Item_End(void);
+
+void    trap_Metrics_AI_Start(void);
+void    trap_Metrics_AI_End(void);
+

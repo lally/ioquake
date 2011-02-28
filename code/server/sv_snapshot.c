@@ -21,7 +21,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #include "server.h"
-
+#include "../ls/quake_provider.h"
 
 /*
 =============================================================================
@@ -689,14 +689,18 @@ void SV_SendClientMessages( void ) {
 		// send additional message fragments if the last message
 		// was too large to send at once
 		if ( c->netchan.unsentFragments ) {
+			QUAKE_NET_PLAYER_START(i, 0);
 			c->nextSnapshotTime = svs.time + 
 				SV_RateMsec( c, c->netchan.unsentLength - c->netchan.unsentFragmentStart );
 			SV_Netchan_TransmitNextFragment( c );
+			QUAKE_NET_PLAYER_END(i);
 			continue;
 		}
 
 		// generate and send a new message
+		QUAKE_NET_PLAYER_START(i, 1);
 		SV_SendClientSnapshot( c );
+		QUAKE_NET_PLAYER_END(i);
 	}
 }
 

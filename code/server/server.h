@@ -25,6 +25,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "../qcommon/qcommon.h"
 #include "../game/g_public.h"
 #include "../game/bg_public.h"
+#include <sys/time.h>
 
 //=============================================================================
 
@@ -230,7 +231,11 @@ typedef struct {
 	challenge_t	challenges[MAX_CHALLENGES];	// to prevent invalid IPs from connecting
 	netadr_t	redirectAddress;			// for rcon return messages
 
-	netadr_t	authorizeAddress;			// for rcon return messages
+	netadr_t	authorizeAddress;			// for rcon return
+											// messages
+	struct timeval  last_density_xmit;  // for periodic output of the
+										// density map. 
+	struct timeval  last_cnt_xmit;  // periodic output of the client count.
 } serverStatic_t;
 
 #define SERVER_MAXBANS	1024

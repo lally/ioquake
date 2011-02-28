@@ -24,6 +24,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include <errno.h>
 #include <stdio.h>
 #include "../qcommon/qcommon.h"
+#include "../ls/ls_met.h"
 
 int			sys_curtime;
 
@@ -64,6 +65,8 @@ void Sys_Error (char *error, ...) {
 }
 
 void Sys_Quit (void) {
+	MET_Flush(MET_GlobalFile());
+	MET_Close(MET_GlobalFile());
 	exit (0);
 }
 
