@@ -573,6 +573,15 @@
     - [ ] Convert the resulting botlib commands back into usercmd_ts.
 
 
+* TODO Alternate AI Client
+** TODO Get your position
+   ALREADY THERE: `viewpos` in the console   
+
+** Get a hard-coded map of the level
+   
+** Start moving ala A* and the distribution from clients.
+   
+  
 * TODO Instrumentation
   I got a little help from Adam Leventhal (creator of dtrace(1))
   on this one.  
