@@ -572,6 +572,15 @@
 *** TODO Wire up command-creation from botlib
     - [ ] Convert the resulting botlib commands back into usercmd_ts.
 
+** NO, do it without botlib
+   botlib woudl probably require compiling the whole game into the
+   binary.  Which is likely painful (and kills your ability to use
+   the manifest on ec2).
+   Instead, put together a console var (or find one(!)) that has the
+   curent player's location (or all of them, in an array), so I can
+   print them.  Then print key location sin a level, and make them a
+   hard-codd table.
+
 
 * TODO Instrumentation
   I got a little help from Adam Leventhal (creator of dtrace(1))

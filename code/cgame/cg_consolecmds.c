@@ -445,6 +445,15 @@ static void CG_Camera_f( void ) {
 */
 
 
+/*
+==================
+Cg_QueryPosition_f
+==================
+
+Print, to the console, our current position.
+
+*/
+
 typedef struct {
 	char	*cmd;
 	void	(*function)(void);
@@ -499,6 +508,7 @@ static consoleCommand_t	commands[] = {
 	{ "scoresUp", CG_scrollScoresUp_f },
 #endif
 	{ "startOrbit", CG_StartOrbit_f },
+	{ "querypos", CG_QueryPosition_f },
 	//{ "camera", CG_Camera_f },
 	{ "loaddeferred", CG_LoadDeferredPlayers }	
 };
