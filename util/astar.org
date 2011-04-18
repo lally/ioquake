@@ -1,0 +1,11 @@
+* Algorithm
+
+Given a start and end:
+
+  - Find the closest point to the end, and the closest one to the start.
+
+  - Search for all paths.  Sort by minimal distance.
+
+  - How to search:
+    - For each path and seek, just sort and sum.  Why'd it stop?
+
