@@ -3,6 +3,19 @@
 #include <assert.h>
 #include <algorithm>
 #include <stdio.h>
+#include <signal.h>
+#include <stdarg.h>
+
+region regions[] = {
+  { {0, 60}, {10, 40} }, // alpha
+  { {25, 80}, {35, 70}}, // beta
+  { {15, 60}, {45, 50}}, // gamma -- ?
+  { {15, 45}, {45, 40}}, // delta -- ?
+  { {50, 60}, {60, 40}}, // epsilon
+  { {25, 35}, {35, 15}}, // zeta
+  { {25, 10}, {35, 0}}  // eta
+};
+
 
 waypoint_init points[] = {
   // sixth nibble:  _, _, _, _
@@ -31,7 +44,7 @@ waypoint_init points[] = {
   { "delta_3", {42.5, 55}, 0x000980 },
 
   // epsilon: 10
-  { "epsilon_1", {52.5, 32.5}, 0x002040 },
+  { "epsilon_1", {52.5, 55}, 0x002040 },
   { "epsilon_2", {52.5, 42.5}, 0x001200 },
 
   // zeta: 12
@@ -40,10 +53,8 @@ waypoint_init points[] = {
 
   // eta: 14
   { "eta_1", {32.5, 5}, 0x00a000 },
-  { "eta_2", {30, 7.5}, 0x004008 },
+  { "eta_2", {30, 7.5}, 0x004008 }
     
-  // a null element
-  { "null", {50, 25}, 0 }
 };
 const int nr_points = sizeof (points) / sizeof (points[0]);
 
@@ -75,12 +86,69 @@ double rawDistance(const position& a, const position& b) {
   return sqrt(sqr(a.x - b.x) + sqr(a.y - b.y));
 }
 
+static int s_depth;
+
+class DepthWatcher{
+public:
+  DepthWatcher() { s_depth++; }
+  ~DepthWatcher() { s_depth--; }
+};
+#define BEGIN_DEPTH  DepthWatcher __dwatcher
+
+
+void iprintf(const char *fmt, ...)
+{
+  char *p;
+  va_list ap;
+  va_start(ap, fmt);
+  int nl_cnt = 0;
+  char *c = (char *)fmt; // we won't actually modify this.
+  while (*c) { if (*c++ == '\n') nl_cnt++; }
+  c = (char *)fmt;
+  if (nl_cnt && s_depth) {
+    c = (char*) malloc(strlen(fmt) + 2*s_depth*nl_cnt + 1);
+    char *src=(char*)fmt, *dest=c;
+    while (*dest++ = *src++) {
+      if (*(dest-1) == '\n') {
+	for (int i=0; i<s_depth; ++i) {
+	  *dest++ = ' ';
+	  *dest++ = ' ';
+	}
+      }
+    }
+  }
+  
+  (void) vprintf(c, ap);
+  va_end(ap);
+  if (nl_cnt && s_depth) free(c);
+}
+
 double distance(const position& a, const position& b,
 		const vector<region>& regs) {
   // find a region that fits a.
+  bool a_in_reg = false;
+  bool b_in_reg = false;
   for (int r=0; r<regs.size(); ++r) {
+    if (within(a, regs[r])) {
+      a_in_reg = true;
+    }
+    if (within(b, regs[r])) {
+      b_in_reg = true;
+    }
     if (within(a, regs[r]) && within(b, regs[r])) {
       return rawDistance(a,b);
+    }
+  }
+  if (!a_in_reg) {
+    iprintf ("WARNING: (%4.1f, %4.1f) is not in any region.\n", a.x, a.y);
+    if (a.x == 0.0 && a.y == 0.0) {
+      kill(getpid(), SIGINT);
+    }
+  }
+  if (!b_in_reg) {
+    iprintf ("WARNING: (%4.1f, %4.1f) is not in any region.\n", b.x, b.y);
+    if (b.x == 0.0 && b.y == 0.0) {
+      kill(getpid(), SIGINT);
     }
   }
   return INFINITY;
@@ -93,9 +161,9 @@ bool makeWaypointTable(waypoint_map_t *dest,
   waypoint init = {{0.0, 0.0}, {INFINITY, INFINITY}};
   assert(dest);
   assert(inits);
-  if (nwaypoints >= MAX_WAYPOINTS) 
+  if (nwaypoints > nr_points) 
     return false;
-  for (int i=0; i<MAX_WAYPOINTS; ++i) 
+  for (int i=0; i<nr_points; ++i) 
     init.distances[i] = INFINITY;
 
   waypoint_map_t& d = *dest;
@@ -103,12 +171,14 @@ bool makeWaypointTable(waypoint_map_t *dest,
   for (int w=0; w<nwaypoints; w++) {
     d.push_back(init);
     d[w].pos = inits[w].p;
-    for (int r=0; r<MAX_WAYPOINTS; ++r) {
+    for (int r=0; r<nwaypoints; ++r) {
       if(is_set(inits[w].reachable_bitmap, r)) {
+	iprintf ("  %s: bit %d of 0x%x is set, connecting to %s\n", 
+		inits[w].comment, r, inits[w].reachable_bitmap, inits[r].comment);
 	d[w].distances[r] = rawDistance(d[w].pos, inits[r].p);
-      } /*else {
+      } else {
 	d[w].distances[r] = distance(d[w].pos, inits[r].p, regs);
-	}*/
+      }
     }
   }
   
@@ -123,31 +193,54 @@ struct IndirectPointSort{
 
   // sort operator, but we want ascending distances.
   bool operator()(int a, int b) {
-    return distances[a] > distances[b];
+    return (distances[b] == INFINITY)
+	|| (distances[a] != INFINITY  
+	    && distances[a] < distances[b]);
+    //    return distances[a] > distances[b];
   }
 };
+static void ppoints(vector<int>* p) {
+  if (p == NULL) { puts("null"); }
+  else if (p->empty()) { puts("empty"); }
+  else {
+    bool first = false;
+    iprintf("<%lu>:", p->size());
+    for (int i=0; i<p->size(); i++) {
+      if (first) { putchar(','); }
+      int index = (*p)[i];
+      iprintf(" %s (%d)", points[index].comment, index);
+    }
+    iprintf("\n");
+  }
+}
+
 
 void sortedWaypoints(vector<int>* dest,
 		     int start, int end,
 		     const waypoint_map_t& wmap,
 		     const region_map_t& regs) {
-  // first, find the distances to all waypoints.
+  // Return, heuristically-sorted, the waypoints.
+  BEGIN_DEPTH;
   assert(start >=0);
   assert(end >=0);
-  double distances[MAX_WAYPOINTS];
-  for (int w=0; w<MAX_WAYPOINTS; w++) {
+  double distances[nr_points];
+  for (int w=0; w<nr_points; w++) {
     if (start != w) {
-      double dist = (distance(wmap[end].pos, wmap[w].pos, regs)
-		     - distance(wmap[start].pos, wmap[w].pos, regs));
-      if (wmap[start].distances[w] != INFINITY) {
-	dist = wmap[start].distances[w];
-      }
-      distances[w] = dist;
-      dest->push_back(w);
+      if ((distances[w] = wmap[start].distances[w]) != INFINITY)
+	dest->push_back(w);
+    } else {
+      distances[w] = INFINITY;
     }
   }
-  sort(dest->begin(), dest->end(), 
-       IndirectPointSort(distances));
+  /*iprintf ("sortedWaypoints from before sort: ");
+  for (int i=0; i<nr_points; i++) {
+    if (distances[i] == INFINITY) 
+      iprintf (". ");
+    else
+      iprintf ("[%d:%3.1f]", i, distances[i]);
+  }
+  iprintf ("\n"); */
+  sort(dest->begin(), dest->end(), IndirectPointSort(distances));
 }
 
 static double pathFindWork(vector<int> *destpath,
@@ -157,84 +250,87 @@ static double pathFindWork(vector<int> *destpath,
 			   const waypoint_map_t& map, 
 			   const region_map_t& regs);
 
-static void ppoints(vector<int>* p) {
-  if (p == NULL) { puts("null"); }
-  else if (p->empty()) { puts("empty"); }
-  else {
-    bool first = false;
-    printf("<%d>:", p->size());
-    for (int i=0; i<p->size(); i++) {
-      if (first) { putchar(','); }
-      int index = (*p)[i];
-      printf(" %s (%d)", points[index].comment, index);
-    }
-    printf("\n");
-  }
-}
-
 static double pathFindWork(vector<int> *destpath,
 			   int pos, int dest,
 			   bitmap_t seen,
 			   const waypoint_map_t& wmap,
 			   const region_map_t& regs) {
+  BEGIN_DEPTH;
   vector<int> wpoints;
   assert(pos >=0);
   assert(dest >=0);
 
   // already there.
   if (pos == dest) {
+    //    iprintf ("* %d = %d\n", pos, dest);
     return 0.0;
   }
 
-  if (full_set(seen)) 
-    return INFINITY; //distance(wmap[pos].pos, wmap[dest].pos, regs);
+  if (full_set(seen)) { 
+    //    iprintf ("* full set seen.");
+    return INFINITY; 
+  }
 
+  if (wmap[pos].distances[dest] != INFINITY) {
+    //    iprintf ("* %d -> %d = %3.1f\n", pos, dest, wmap[pos].distances[dest]);
+    destpath->push_back(dest);
+    return wmap[pos].distances[dest];
+  }
+
+  //  iprintf ("\nSTART %d->%d\n", pos, dest);
   sortedWaypoints(&wpoints, pos, dest, wmap, regs);
+  //  iprintf ("\n%d->%d sorted waypoint list: ", pos, dest);
+  //  ppoints(&wpoints);
   // remove those we've already seen.
   vector<int>::iterator j = wpoints.begin();
   while (j != wpoints.end()) {
     if (is_set(seen, *j)) {
       wpoints.erase(j);
+      //      iprintf ("  -- removing already-seen %d\n", *j);
     }
     else {
       ++j;
     }
   }
 
-  printf(" %d to %d: sorted waypoints: ", pos, dest);
-  ppoints(destpath);
-
   if (wpoints.empty())
-    return INFINITY; //distance(pos, dest, regs);
+    return INFINITY; 
 
-  int offset = destpath->size();
+  const int offset = destpath->size();
   int lowest_idx = -1;
   double lowest_value = INFINITY;
-  vector<int> tmp;
+
+  vector<int> tmp(destpath->begin(), destpath->end());
   for (int i=0; i<wpoints.size(); ++i) {
     if (!is_set(seen, wpoints[i])) {
-      double val = pathFindWork(&tmp, wpoints[i], dest,
-				set(seen, wpoints[i]), wmap, regs);
+      double val;
+
+      //      iprintf ("\n%d->%d ITER %d(p#%d): start path =", pos, dest, i, wpoints[i]);
+      //      ppoints(&tmp);
+
+      tmp.push_back(wpoints[i]);
+      val = pathFindWork(&tmp, wpoints[i], dest,
+			 set(seen, wpoints[i]), wmap, regs)
+	+ wmap[pos].distances[wpoints[i]];
+
       if (lowest_value == INFINITY 
-	  || (val < lowest_value && val != INFINITY)) {
+	  || (val != INFINITY && val < lowest_value)) {
 	lowest_value = val;
-	lowest_idx = i;
-	destpath->resize(offset);
-	destpath->push_back(wpoints[i]);
-	printf("  choosing minimum distance %f, going through: ", val);
-	ppoints(destpath);
-	printf("     to follow path ");
-	ppoints(&tmp);
-	copy(tmp.begin(), tmp.end(),
-	     back_inserter(*destpath));
-      }
+	lowest_idx = wpoints[i];
+	//	iprintf("\nchoosing minimum distance %5.2f, with path= ", val);
+	//	ppoints(&tmp);
+	destpath->assign(tmp.begin(), tmp.end());
+      } 
+
+      tmp.resize(offset);
     }
   }
 
   // at the end, destpath has the minimum path we've seen so far,
   // and now we're returning our distance to the path we've appended on.
 
-  return lowest_value + distance(wmap[pos].pos, wmap[lowest_idx].pos, regs);
+  //  iprintf ("\nCOMPLETE: min_val: %f, min_idx: %d\n", lowest_value, lowest_idx);
+  return lowest_value; // + distance(wmap[pos].pos, wmap[lowest_idx].pos, regs);
 }
 
 bool pathFind(vector<int> *destpath,
@@ -264,64 +360,51 @@ bool pathFind(vector<int> *destpath,
 
 /* test routine */
 int main(int args, char ** argv) {
-
-  region regions[] = {
-    { {0, 60}, {10, 40} }, // alpha
-    { {25, 80}, {35, 70}}, // beta
-    { {14, 45}, {45, 40}}, // gamma
-    { {60, 15}, {45, 50}}, // delta
-    { {50, 60}, {60, 40}}, // epsilon
-    { {25, 35}, {35, 15}}, // zeta
-    { {25, 10}, {35, 0}}  // eta
-  };
-
   waypoint_map_t wmap;
   region_map_t regs(regions, regions + 7);
 
+  int self_refs = 0;
   bool r = makeWaypointTable(&wmap, regs, nr_points, points);
-  printf ("Waypoint Table: \n");
+  iprintf ("Waypoint Table: \n");
+  iprintf ("          \t             ");
   for (int i=0; i<wmap.size(); ++i) {
-    printf ("%d: %s\t (%3.1f,%3.1f) ", i, points[i].comment,
+    iprintf("%6d ", i);
+  }
+  iprintf("\n");
+
+  for (int i=0; i<wmap.size(); ++i) {
+    iprintf ("%d: %s\t (%4.1f,%4.1f) ", i, points[i].comment,
 	    wmap[i].pos.x, wmap[i].pos.y);
     for (int j=0; j<wmap.size(); j++) {
       double dist = wmap[i].distances[j];
       char sep = ((j+1)%5) == 0? '|':' ';
       if (dist == INFINITY) {
-	printf (".%c", sep);
+	iprintf ("      %c", sep);
       } else if (dist < 0.01) {
 	if (i == j) {
-	  printf ("!%c", sep);
+	  iprintf ("   *  %c", sep);
+	  self_refs++;
 	} else {
-	  printf ("X%c", sep);
+	  iprintf ("   X  %c", sep);
 	}
       } else {
-	printf ("%3.2f%c", wmap[i].distances[j], sep);
+	iprintf ("%6.2f%c", wmap[i].distances[j], sep);
       }
     }
-    printf ("\n");
+    iprintf ("\n");
   }
+  iprintf("\nSelf References: %d\n", self_refs);
 
-  printf ("Starting waypoint-waypoint tests.\n");
+  iprintf ("Starting waypoint-waypoint tests.\n");
   struct path_t { int start,  end; };
-  while (1) {
-    int start, end;
-    printf ("Start index:"); fflush(stdout);
-    scanf("%d", &start);
-    printf ("End index:"); fflush(stdout);
-    scanf("%d", &end);
-
-
+  for (int i=0; i<wmap.size(); ++i) {
     vector<int> path;
-    bool ret = pathFind(&path, wmap[start].pos, wmap[end].pos,
-    			  wmap, regs);
-    printf ("RESULT:  %d to %d: ", start, end);
-    if (ret) {
-    	for (int j=0; j<path.size(); ++j) {
-    	  printf ("%s ", points[j].comment);
-    	}
-    } else {
-    	printf ("fail");
+    bool ret = pathFind(&path, wmap[0].pos, wmap[i].pos,
+			wmap, regs);
+    iprintf ("RESULT:  %d to %d: ", 0, i);
+    for (int j=0; j<path.size(); ++j) {
+      iprintf ("%s (%d) ", points[path[j]].comment, path[j]);
     }
-    printf ("\n=======================\n\n");
+    iprintf ("\n");
   }
 }
