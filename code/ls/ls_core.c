@@ -43,6 +43,21 @@ qboolean LS_Connect () {
  * Client integration
  *****************************************************************************/
 
+/* TODO:
+   1) Get Current Position and Orientation
+   2) Get desired vector from pathfinding
+   3) Subtract, get magnitude and direction.
+   4) If Magnitude < threshold, consume path element and goto step 2.
+   5)   If path is complete, ask AI for next step, then goto 2.
+   6) else, magnitude -> CL.forwardmove.  direction -> CL.rightmove.
+
+   Current position (from CG_Viewpos_f, which is known to work 
+   client-side):
+	CG_Printf ("(%i %i %i) : %i\n", (int)cg.refdef.vieworg[0],
+		(int)cg.refdef.vieworg[1], (int)cg.refdef.vieworg[2], 
+		(int)cg.refdefViewAngles[YAW]);
+   
+ */
 usercmd_t  LS_CreateCmd( void ) {
 	usercmd_t cmd;
 	vec3_t		oldAngles;
