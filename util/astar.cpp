@@ -56,10 +56,11 @@ waypoint_init points[] = {
   { "eta_2", {30, 7.5}, 0x004008 }
     
 };
-const int nr_points = sizeof (points) / sizeof (points[0]);
 
-static bool within(const position& p,
-		   const region& r) {
+#define NR_POINTS (sizeof (points) / sizeof (points[0]));
+
+static bool within(struct position p,
+		   struct region r) {
   return p.x >= r.topleft.x 
     && p.y <= r.topleft.y
     && p.x <= r.bottomright.x
@@ -82,18 +83,22 @@ static inline bool full_set(bitmap_t map) {
   return map == 0xFFFFFFFF;
 }
 
-double rawDistance(const position& a, const position& b) {
+double rawDistance(struct position a, struct position b) {
   return sqrt(sqr(a.x - b.x) + sqr(a.y - b.y));
 }
 
 static int s_depth;
-
-class DepthWatcher{
-public:
+#if 0
+ class DepthWatcher{
+ public:
   DepthWatcher() { s_depth++; }
   ~DepthWatcher() { s_depth--; }
-};
-#define BEGIN_DEPTH  DepthWatcher __dwatcher
+ };
+ #define BEGIN_DEPTH  DepthWatcher __dwatcher
+#endif
+
+#define BEGIN_DEPTH do { s_depth++; } while (0)
+#define END_DEPTH do { s_depth--; } while (0)
 
 
 void iprintf(const char *fmt, ...)
@@ -110,7 +115,8 @@ void iprintf(const char *fmt, ...)
     char *src=(char*)fmt, *dest=c;
     while (*dest++ = *src++) {
       if (*(dest-1) == '\n') {
-	for (int i=0; i<s_depth; ++i) {
+	int i;
+	for (i=0; i<s_depth; ++i) {
 	  *dest++ = ' ';
 	  *dest++ = ' ';
 	}
@@ -124,18 +130,19 @@ void iprintf(const char *fmt, ...)
 }
 
 double distance(const position& a, const position& b,
-		const vector<region>& regs) {
+		const region_map_t* regs) {
   // find a region that fits a.
   bool a_in_reg = false;
   bool b_in_reg = false;
-  for (int r=0; r<regs.size(); ++r) {
-    if (within(a, regs[r])) {
+  int r;
+  for (r=0; r<SIZE(*regs); ++r) {
+    if (within(a, GET(*regs,r))) {
       a_in_reg = true;
     }
-    if (within(b, regs[r])) {
+    if (within(b, GET(*regs,r))) {
       b_in_reg = true;
     }
-    if (within(a, regs[r]) && within(b, regs[r])) {
+    if (within(a, GET(*regs,r)) && within(b, GET(*regs,r))) {
       return rawDistance(a,b);
     }
   }
@@ -154,30 +161,32 @@ double distance(const position& a, const position& b,
   return INFINITY;
 }
 
-bool makeWaypointTable(waypoint_map_t *dest,
-		       const vector<region>& regs,
-		       int nwaypoints,
-		       const waypoint_init* inits) {
+bool makeWaypointTable(waypoint_map_t		*dest,
+		       const region_map_t*	 regs,
+		       int			 nwaypoints,
+		       const waypoint_init*      inits) {
   waypoint init = {{0.0, 0.0}, {INFINITY, INFINITY}};
   assert(dest);
   assert(inits);
-  if (nwaypoints > nr_points) 
+  if (nwaypoints > NR_POINTS) 
     return false;
-  for (int i=0; i<nr_points; ++i) 
+  int i;
+  for (i=0; i<NR_POINTS; ++i) 
     init.distances[i] = INFINITY;
 
-  waypoint_map_t& d = *dest;
-  d.clear();
-  for (int w=0; w<nwaypoints; w++) {
-    d.push_back(init);
-    d[w].pos = inits[w].p;
-    for (int r=0; r<nwaypoints; ++r) {
+  CLEAR(*dest);
+  int w;
+  for (w=0; w<nwaypoints; w++) {
+    PUSH_BACK(*dest, init);
+    ELEM(*dest,w).pos = inits[w].p;
+    int r;
+    for (r=0; r<nwaypoints; ++r) {
       if(is_set(inits[w].reachable_bitmap, r)) {
 	iprintf ("  %s: bit %d of 0x%x is set, connecting to %s\n", 
 		inits[w].comment, r, inits[w].reachable_bitmap, inits[r].comment);
-	d[w].distances[r] = rawDistance(d[w].pos, inits[r].p);
+	ELEM(*dest,w).distances[r] = rawDistance(ELEM(*dest,w).pos, inits[r].p);
       } else {
-	d[w].distances[r] = distance(d[w].pos, inits[r].p, regs);
+	ELEM(*dest,w).distances[r] = distance(ELEM(*dest,w).pos, inits[r].p, regs);
       }
     }
   }
@@ -186,7 +195,7 @@ bool makeWaypointTable(waypoint_map_t *dest,
 }
 
 //==================================================================
-
+/*
 struct IndirectPointSort{
   const double *distances;
   IndirectPointSort(const double *d) : distances(d) {}
@@ -199,15 +208,18 @@ struct IndirectPointSort{
     //    return distances[a] > distances[b];
   }
 };
-static void ppoints(vector<int>* p) {
+*/
+
+static void ppoints(int_map_t* p) {
   if (p == NULL) { puts("null"); }
-  else if (p->empty()) { puts("empty"); }
+  else if (SIZE(*p) == 0) { puts("empty"); }
   else {
     bool first = false;
-    iprintf("<%lu>:", p->size());
-    for (int i=0; i<p->size(); i++) {
+    iprintf("<%lu>:", SIZE(*p));
+    int i;
+    for (i=0; i<SIZE(*p); i++) {
       if (first) { putchar(','); }
-      int index = (*p)[i];
+      int index = GET(*p,i);
       iprintf(" %s (%d)", points[index].comment, index);
     }
     iprintf("\n");
@@ -215,66 +227,77 @@ static void ppoints(vector<int>* p) {
 }
 
 
-void sortedWaypoints(vector<int>* dest,
+void sortedWaypoints(int_map_t* dest,
 		     int start, int end,
-		     const waypoint_map_t& wmap,
-		     const region_map_t& regs) {
+		     struct waypoint_map_t* wmap,
+		     struct region_map_t* regs) {
   // Return, heuristically-sorted, the waypoints.
   BEGIN_DEPTH;
   assert(start >=0);
   assert(end >=0);
-  double distances[nr_points];
-  for (int w=0; w<nr_points; w++) {
+  double distances[NR_POINTS];
+  int w;
+  for (w=0; w<NR_POINTS; w++) {
     if (start != w) {
-      if ((distances[w] = wmap[start].distances[w]) != INFINITY)
-	dest->push_back(w);
+      if ((distances[w] = ELEM(*wmap,start).distances[w]) != INFINITY)
+	PUSH_BACK(*wmap, w);
     } else {
       distances[w] = INFINITY;
     }
   }
   /*iprintf ("sortedWaypoints from before sort: ");
-  for (int i=0; i<nr_points; i++) {
+  for (int i=0; i<NR_POINTS; i++) {
     if (distances[i] == INFINITY) 
       iprintf (". ");
     else
       iprintf ("[%d:%3.1f]", i, distances[i]);
   }
   iprintf ("\n"); */
-  sort(dest->begin(), dest->end(), IndirectPointSort(distances));
+
+  //
+  // TODO(lally): copy over qhsort from the nb305.
+  //
+  //  sort(dest->begin(), dest->end(), IndirectPointSort(distances));
+  END_DEPTH;
 }
 
-static double pathFindWork(vector<int> *destpath,
+static double pathFindWork(int_map_t *destpath,
 			   int pos,
 			   int dest,
 			   bitmap_t seen,
-			   const waypoint_map_t& map, 
-			   const region_map_t& regs);
+			   struct waypoint_map_t* map, 
+			   struct region_map_t* regs);
 
-static double pathFindWork(vector<int> *destpath,
+static double pathFindWork(int_map_t *destpath,
 			   int pos, int dest,
 			   bitmap_t seen,
-			   const waypoint_map_t& wmap,
-			   const region_map_t& regs) {
+			   struct waypoint_map_t* wmap,
+			   struct region_map_t* regs) {
   BEGIN_DEPTH;
-  vector<int> wpoints;
+  int_map_t wpoints;
+  INIT(wpoints);
   assert(pos >=0);
   assert(dest >=0);
 
   // already there.
   if (pos == dest) {
     //    iprintf ("* %d = %d\n", pos, dest);
+    END_DEPTH;
     return 0.0;
   }
 
   if (full_set(seen)) { 
     //    iprintf ("* full set seen.");
+    END_DEPTH;
     return INFINITY; 
   }
 
-  if (wmap[pos].distances[dest] != INFINITY) {
+  if (GET(*wmap,pos).distances[dest] != INFINITY) {
     //    iprintf ("* %d -> %d = %3.1f\n", pos, dest, wmap[pos].distances[dest]);
-    destpath->push_back(dest);
-    return wmap[pos].distances[dest];
+    PUSH_BACK(*destpath, dest);
+    //    destpath->push_back(dest);
+    END_DEPTH;
+    return GET(wmap,pos).distances[dest];
   }
 
   //  iprintf ("\nSTART %d->%d\n", pos, dest);
@@ -282,10 +305,10 @@ static double pathFindWork(vector<int> *destpath,
   //  iprintf ("\n%d->%d sorted waypoint list: ", pos, dest);
   //  ppoints(&wpoints);
   // remove those we've already seen.
-  vector<int>::iterator j = wpoints.begin();
-  while (j != wpoints.end()) {
-    if (is_set(seen, *j)) {
-      wpoints.erase(j);
+  int j = 0;
+  while (j < SIZE(wpoints)) {
+    if (is_set(seen, ELEM(wpoints,j))) {
+      ERASE(wpoints, j);
       //      iprintf ("  -- removing already-seen %d\n", *j);
     }
     else {
@@ -293,36 +316,45 @@ static double pathFindWork(vector<int> *destpath,
     }
   }
 
-  if (wpoints.empty())
+  if (SIZE(wpoints) == 0) {
+    END_DEPTH;
     return INFINITY; 
+  }
 
   const int offset = destpath->size();
   int lowest_idx = -1;
   double lowest_value = INFINITY;
 
-  vector<int> tmp(destpath->begin(), destpath->end());
-  for (int i=0; i<wpoints.size(); ++i) {
-    if (!is_set(seen, wpoints[i])) {
+  //  vector<int> tmp(destpath->begin(), destpath->end());
+  int_vec_t tmp;
+  INIT(tmp);
+  COPY(tmp, *destpath);
+  int i;
+  for (i=0; i<SIZE(wpoints); ++i) {
+    if (!is_set(seen, ELEM(wpoints,i))) {
       double val;
 
       //      iprintf ("\n%d->%d ITER %d(p#%d): start path =", pos, dest, i, wpoints[i]);
       //      ppoints(&tmp);
 
-      tmp.push_back(wpoints[i]);
-      val = pathFindWork(&tmp, wpoints[i], dest,
-			 set(seen, wpoints[i]), wmap, regs)
-	+ wmap[pos].distances[wpoints[i]];
+      
+      PUSH_BACK(tmp, ELEM(wpoints,i));
+      val = pathFindWork(&tmp, ELEM(wpoints,i), dest,
+			 set(seen, ELEM(wpoints,i)), wmap, regs)
+	+ wmap[pos].distances[ELEM(wpoints,i)];
 
       if (lowest_value == INFINITY 
 	  || (val != INFINITY && val < lowest_value)) {
 	lowest_value = val;
-	lowest_idx = wpoints[i];
+	lowest_idx = ELEM(wpoints,i);
 	//	iprintf("\nchoosing minimum distance %5.2f, with path= ", val);
 	//	ppoints(&tmp);
-	destpath->assign(tmp.begin(), tmp.end());
+	COPY(*destpath, tmp);
+	//	destpath->assign(tmp.begin(), tmp.end());
       } 
 
-      tmp.resize(offset);
+      RESIZE(tmp, offset);
+      //      tmp.resize(offset);
     }
   }
 
@@ -330,21 +362,23 @@ static double pathFindWork(vector<int> *destpath,
   // and now we're returning our distance to the path we've appended on.
 
   //  iprintf ("\nCOMPLETE: min_val: %f, min_idx: %d\n", lowest_value, lowest_idx);
+  END_DEPTH;
   return lowest_value; // + distance(wmap[pos].pos, wmap[lowest_idx].pos, regs);
 }
 
-bool pathFind(vector<int> *destpath,
+bool pathFind(int_vec_t *destpath,
 	      position pos, position dest,
-	      const waypoint_map_t& wmap,
-	      const region_map_t& regs) {
+	      const waypoint_map_t* wmap,
+	      const region_map_t* regs) {
   bitmap_t seen = 0;
   //
   // find the closest positions for 'pos' and 'dest'
   double min_p = INFINITY, min_d = INFINITY;
   int i_p = -1, i_d = -1;
-  for (int i=0; i<wmap.size(); ++i) {
-    double pdist = distance(pos, wmap[i].pos, regs);
-    double ddist = distance(dest, wmap[i].pos, regs);
+  int i;
+  for (i=0; i<SIZE(*wmap); ++i) {
+    double pdist = distance(pos, ELEM(*wmap,i).pos, regs);
+    double ddist = distance(dest, ELEM(*wmap,i).pos, regs);
     if (min_p == INFINITY || (pdist != INFINITY && min_p > pdist)) {
       min_p = pdist; i_p = i;
     }
@@ -361,22 +395,30 @@ bool pathFind(vector<int> *destpath,
 /* test routine */
 int main(int args, char ** argv) {
   waypoint_map_t wmap;
-  region_map_t regs(regions, regions + 7);
+  region_map_t regs;
+  INIT(wmap);
+  INIT(regs);
+  int i;
+  for (i=0; i<7; i++) {
+    PUSH_BACK(regs, regions[i]);
+  }
 
   int self_refs = 0;
-  bool r = makeWaypointTable(&wmap, regs, nr_points, points);
+  bool r = makeWaypointTable(&wmap, regs, NR_POINTS, points);
   iprintf ("Waypoint Table: \n");
   iprintf ("          \t             ");
-  for (int i=0; i<wmap.size(); ++i) {
+
+  for (i=0; i<SIZE(wmap); ++i) {
     iprintf("%6d ", i);
   }
   iprintf("\n");
 
-  for (int i=0; i<wmap.size(); ++i) {
+  int i,j;
+  for (i=0; i<SIZE(wmap); ++i) {
     iprintf ("%d: %s\t (%4.1f,%4.1f) ", i, points[i].comment,
-	    wmap[i].pos.x, wmap[i].pos.y);
-    for (int j=0; j<wmap.size(); j++) {
-      double dist = wmap[i].distances[j];
+	    ELEM(wmap, i).pos.x, ELEM(wmap, i).pos.y);
+    for (j=0; j<SIZE(wmap); j++) {
+      double dist = ELEM(wmap, i).distances[j];
       char sep = ((j+1)%5) == 0? '|':' ';
       if (dist == INFINITY) {
 	iprintf ("      %c", sep);
@@ -388,7 +430,7 @@ int main(int args, char ** argv) {
 	  iprintf ("   X  %c", sep);
 	}
       } else {
-	iprintf ("%6.2f%c", wmap[i].distances[j], sep);
+	iprintf ("%6.2f%c", ELEM(wmap, i).distances[j], sep);
       }
     }
     iprintf ("\n");
@@ -396,14 +438,15 @@ int main(int args, char ** argv) {
   iprintf("\nSelf References: %d\n", self_refs);
 
   iprintf ("Starting waypoint-waypoint tests.\n");
-  struct path_t { int start,  end; };
-  for (int i=0; i<wmap.size(); ++i) {
-    vector<int> path;
-    bool ret = pathFind(&path, wmap[0].pos, wmap[i].pos,
+
+  for (i=0; i<SIZE(wmap); ++i) {
+    int_vec_t path;
+    INIT(path);
+    bool ret = pathFind(&path, ELEM(wmap,0).pos, ELEM(wmap, i).pos,
 			wmap, regs);
     iprintf ("RESULT:  %d to %d: ", 0, i);
-    for (int j=0; j<path.size(); ++j) {
-      iprintf ("%s (%d) ", points[path[j]].comment, path[j]);
+    for (j=0; j<SIZE(path); ++j) {
+      iprintf ("%s (%d) ", points[ELEM(path,j)].comment, path[j]);
     }
     iprintf ("\n");
   }
