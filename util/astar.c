@@ -8,13 +8,13 @@
 #include <stdarg.h>
 
 struct region regions[] = {
-  { {0, 60}, {10, 40} }, // alpha
-  { {25, 80}, {35, 70}}, // beta
-  { {15, 60}, {45, 50}}, // gamma -- ?
-  { {15, 45}, {45, 40}}, // delta -- ?
-  { {50, 60}, {60, 40}}, // epsilon
-  { {25, 35}, {35, 15}}, // zeta
-  { {25, 10}, {35, 0}}  // eta
+  { {0, 60, 1}, {10, 40, 0} }, // alpha
+  { {25, 80, 1}, {35, 70, 0}}, // beta
+  { {15, 60, 1}, {45, 50, 0}}, // gamma -- ?
+  { {15, 45, 1}, {45, 40, 0}}, // delta -- ?
+  { {50, 60, 1}, {60, 40, 0}}, // epsilon
+  { {25, 35, 1}, {35, 15, 0}}, // zeta
+  { {25, 10, 1}, {35, 0, 0}}   // eta
 };
 
 
@@ -27,34 +27,34 @@ struct waypoint_init points[] = {
   // first nibble:  beta 2,1, alpha 2,1, 
 
   // alpha: 0
-  { "alpha_1", {7.5, 42.5}, 0x000012 },
-  { "alpha_2", {7.5, 55.0}, 0x000081 },
+  { "alpha_1", {7.5, 42.5, 0.1}, 0x000012 },
+  { "alpha_2", {7.5, 55.0, 0.1}, 0x000081 },
 
   // beta: 2
-  { "beta_1", {30, 72.5},  0x000108 },
-  { "beta_2", {32.5, 75},  0x010004 },
+  { "beta_1", {30, 72.5, 0.1},  0x000108 },
+  { "beta_2", {32.5, 75, 0.1},  0x010004 },
 
   // gamma: 4
-  { "gamma_1", {17.5, 42.5}, 0x000061 },
-  { "gamma_2", {30, 42.5},   0x001050 },
-  { "gamma_3", {42.5, 42.5}, 0x000830 },
+  { "gamma_1", {17.5, 42.5, 0.1}, 0x000061 },
+  { "gamma_2", {30, 42.5, 0.1},   0x001050 },
+  { "gamma_3", {42.5, 42.5, 0.1}, 0x000830 },
 
   // delta:7 
-  { "delta_1", {17.5, 55}, 0x000302 },
-  { "delta_2", {30, 57.5}, 0x000284 },
-  { "delta_3", {42.5, 55}, 0x000980 },
+  { "delta_1", {17.5, 55, 0.1}, 0x000302 },
+  { "delta_2", {30, 57.5, 0.1}, 0x000284 },
+  { "delta_3", {42.5, 55, 0.1}, 0x000980 },
 
   // epsilon: 10
-  { "epsilon_1", {52.5, 55}, 0x002040 },
-  { "epsilon_2", {52.5, 42.5}, 0x001200 },
+  { "epsilon_1", {52.5, 55, 0.1}, 0x002040 },
+  { "epsilon_2", {52.5, 42.5, 0.1}, 0x001200 },
 
   // zeta: 12
-  { "zeta_1", {30, 32.5}, 0x002100 },
-  { "zeta_2", {30, 17.5}, 0x005000 },
+  { "zeta_1", {30, 32.5, 0.1}, 0x002100 },
+  { "zeta_2", {30, 17.5, 0.1}, 0x005000 },
 
   // eta: 14
-  { "eta_1", {32.5, 5}, 0x00a000 },
-  { "eta_2", {30, 7.5}, 0x004008 }
+  { "eta_1", {32.5, 5, 0.1}, 0x00a000 },
+  { "eta_2", {30, 7.5, 0.1}, 0x004008 }
     
 };
 
@@ -64,8 +64,10 @@ static bool within(struct position p,
 		   struct region r) {
   return p.x >= r.topleft.x 
     && p.y <= r.topleft.y
+    && p.z <= r.topleft.z
     && p.x <= r.bottomright.x
-    && p.y >= r.bottomright.y;
+    && p.y >= r.bottomright.y
+    && p.z >= r.bottomright.z;
 }
 
 static double sqr(double f) { 
@@ -85,19 +87,10 @@ static inline bool full_set(bitmap_t map) {
 }
 
 double rawDistance(struct position a, struct position b) {
-  return sqrt(sqr(a.x - b.x) + sqr(a.y - b.y));
+  return sqrt(sqr(a.x - b.x) + sqr(a.y - b.y) + sqr(a.z - b.z));
 }
 
 static int s_depth;
-#if 0
- class DepthWatcher{
- public:
-  DepthWatcher() { s_depth++; }
-  ~DepthWatcher() { s_depth--; }
- };
- #define BEGIN_DEPTH  DepthWatcher __dwatcher
-#endif
-
 #define BEGIN_DEPTH do { s_depth++; } while (0)
 #define END_DEPTH do { s_depth--; } while (0)
 
