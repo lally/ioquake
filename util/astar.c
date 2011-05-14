@@ -17,7 +17,6 @@ struct region regions[] = {
   { {25, 10, 1}, {35, 0, 0}}   // eta
 };
 
-
 struct waypoint_init points[] = {
   // sixth nibble:  _, _, _, _
   // fifth nibble:  _, _, _, _
@@ -27,34 +26,34 @@ struct waypoint_init points[] = {
   // first nibble:  beta 2,1, alpha 2,1, 
 
   // alpha: 0
-  { "alpha_1", {7.5, 42.5, 0.1}, 0x000012 },
-  { "alpha_2", {7.5, 55.0, 0.1}, 0x000081 },
+  { "alpha_1", {7.5, 42.5, 0.1}, {0, 0x000012} },
+  { "alpha_2", {7.5, 55.0, 0.1}, {0, 0x000081} },
 
   // beta: 2
-  { "beta_1", {30, 72.5, 0.1},  0x000108 },
-  { "beta_2", {32.5, 75, 0.1},  0x010004 },
+  { "beta_1", {30, 72.5, 0.1},  {0, 0x000108} },
+  { "beta_2", {32.5, 75, 0.1},  {0, 0x010004} },
 
   // gamma: 4
-  { "gamma_1", {17.5, 42.5, 0.1}, 0x000061 },
-  { "gamma_2", {30, 42.5, 0.1},   0x001050 },
-  { "gamma_3", {42.5, 42.5, 0.1}, 0x000830 },
+  { "gamma_1", {17.5, 42.5, 0.1}, {0, 0x000061} },
+  { "gamma_2", {30, 42.5, 0.1},   {0, 0x001050} },
+  { "gamma_3", {42.5, 42.5, 0.1}, {0, 0x000830} },
 
   // delta:7 
-  { "delta_1", {17.5, 55, 0.1}, 0x000302 },
-  { "delta_2", {30, 57.5, 0.1}, 0x000284 },
-  { "delta_3", {42.5, 55, 0.1}, 0x000980 },
+  { "delta_1", {17.5, 55, 0.1}, {0, 0x000302} },
+  { "delta_2", {30, 57.5, 0.1}, {0, 0x000284} },
+  { "delta_3", {42.5, 55, 0.1}, {0, 0x000980} },
 
   // epsilon: 10
-  { "epsilon_1", {52.5, 55, 0.1}, 0x002040 },
-  { "epsilon_2", {52.5, 42.5, 0.1}, 0x001200 },
+  { "epsilon_1", {52.5, 55, 0.1}, {0, 0x002040} },
+  { "epsilon_2", {52.5, 42.5, 0.1}, {0, 0x001200} },
 
   // zeta: 12
-  { "zeta_1", {30, 32.5, 0.1}, 0x002100 },
-  { "zeta_2", {30, 17.5, 0.1}, 0x005000 },
+  { "zeta_1", {30, 32.5, 0.1}, {0, 0x002100} },
+  { "zeta_2", {30, 17.5, 0.1}, {0, 0x005000} },
 
   // eta: 14
-  { "eta_1", {32.5, 5, 0.1}, 0x00a000 },
-  { "eta_2", {30, 7.5, 0.1}, 0x004008 }
+  { "eta_1", {32.5, 5, 0.1}, {0, 0x00a000} },
+  { "eta_2", {30, 7.5, 0.1}, {0, 0x004008} }
     
 };
 
@@ -155,6 +154,8 @@ double distance(struct position a, struct  position b,
   return INFINITY;
 }
 
+#define MAX_BITMAPS ((MAX_WAYPOINTS) / INT_BITS)
+
 bool makeWaypointTable(waypoint_vec_t		*dest,
 		       const region_map_t*	 regs,
 		       int			 nwaypoints,
@@ -174,8 +175,11 @@ bool makeWaypointTable(waypoint_vec_t		*dest,
     PUSH_BACK(*dest, init);
     GET(*dest,w).pos = inits[w].p;
     int r;
+    int offset;
     for (r=0; r<nwaypoints; ++r) {
-      if(is_set(inits[w].reachable_bitmap, r)) {
+      offset = r > 31? 0:1;
+
+      if(is_set(inits[w].reachable_bitmap[offset], r)) {
 	//	iprintf ("  %s: bit %d of 0x%x is set, connecting to %s\n", 
 	//		inits[w].comment, r, inits[w].reachable_bitmap, inits[r].comment);
 	GET(*dest,w).distances[r] = rawDistance(GET(*dest,w).pos, inits[r].p);

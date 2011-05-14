@@ -24,7 +24,9 @@ double distance(struct position a,
 		struct position b,
 		const region_map_t* regs);
 
-#define MAX_WAYPOINTS  (32)
+#define MAX_WAYPOINTS  (64)
+#define INT_BITS (32)
+#define CHAR_BITS (8)
 
 typedef int bitmap_t;
 
@@ -41,7 +43,7 @@ DEFVECTOR(int_vec_t, int);
 struct waypoint_init {
   const char *comment;
   struct position p;
-  bitmap_t reachable_bitmap;
+  bitmap_t reachable_bitmap[2]; //MAX_WAYPOINTS / (CHAR_BITS * sizeof(bitmap_t))];
 };
 
 bool makeWaypointTable(waypoint_vec_t *dest,
