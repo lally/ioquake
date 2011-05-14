@@ -10,8 +10,8 @@ struct position {
 };
 
 struct region {
-  // note: topleft has the larger Z.
-  struct position topleft, bottomright;
+  // note: bottomleft has the the lower X, lower Y, and lower Z.
+  struct position bottomleft, topright;
 };
 
 DEFVECTOR(region_map_t, struct region);

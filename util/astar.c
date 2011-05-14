@@ -8,65 +8,137 @@
 #include <stdarg.h>
 
 struct region regions[] = {
-  { {0, 60, 1}, {10, 40, 0} }, // alpha
-  { {25, 80, 1}, {35, 70, 0}}, // beta
-  { {15, 60, 1}, {45, 50, 0}}, // gamma -- ?
-  { {15, 45, 1}, {45, 40, 0}}, // delta -- ?
-  { {50, 60, 1}, {60, 40, 0}}, // epsilon
-  { {25, 35, 1}, {35, 15, 0}}, // zeta
-  { {25, 10, 1}, {35, 0, 0}}   // eta
+  // Quad-damage platform
+  { {120, 50, 1325}, {225, 65, 1355}},
+
+  // Railgun platform
+  { {2300, -250, 300}, { 2600, 350, 335} },
+
+  // Low jump platform
+  { {-72, -210, 45}, {1150, 335, 75} },
+
+  // mid platform
+  { {40, -950, 370}, {710, 1075, 405} },
+
+  // left upper platform
+  { {-600, -1100, 620}, {165, -420, 650} },
+
+  // right upper platform
+  { {-600, 550, 620}, {140, 1300, 650} }
+
+  /*  { {0, 40, 0}, {10, 60, 1} }, // old_alpha
+  { {25, 70, 0}, {35, 80, 1}}, // old_bold_eta
+  { {15, 50, 0}, {45, 60, 1}}, // old_gamma -- ?
+  { {15, 40, 0}, {45, 45, 1}}, // old_delta -- ?
+  { {50, 40, 0}, {60, 60, 1}}, // old_epsilon
+  { {25, 15, 0}, {35, 35, 1}}, // old_zold_eta
+  { {25, 0, 0}, {35, 10, 1}}   // old_eta  */
 };
 
 struct waypoint_init points[] = {
   // sixth nibble:  _, _, _, _
   // fifth nibble:  _, _, _, _
-  // fourth nibble: eta 2,1, zeta 2,1
-  // third nibble:  epsilon 2, 1, delta 3,2, 
-  // second nibble: delta 1, gamma 3,2,1, 
-  // first nibble:  beta 2,1, alpha 2,1, 
+  // fourth nibble: old_eta 2,1, old_zold_eta 2,1
+  // third nibble:  old_epsilon 2, 1, old_delta 3,2, 
+  // second nibble: old_delta 1, old_gamma 3,2,1, 
+  // first nibble:  old_bold_eta 2,1, old_alpha 2,1, 
+  { "A-1", {122, 61, 1330}, {0, 0}},
+  { "A-2", {220, 59, 1330}, {0, 0}},
 
-  // alpha: 0
-  { "alpha_1", {7.5, 42.5, 0.1}, {0, 0x000012} },
-  { "alpha_2", {7.5, 55.0, 0.1}, {0, 0x000081} },
+  { "B-1", {190, -900, 378}, {0, 0}},
+  { "B-2", {-381, -792, 626}, {0, 0}},
+  { "B-3", {-388, -425, 626}, {0, 0}},
+  { "B-4", {-388, 550, 626}, {0, 0}},
+  { "B-5", {-388, 918, 626}, {0, 0}},
+  { "B-6", {150, 1052, 378}, {0, 0}},
 
-  // beta: 2
-  { "beta_1", {30, 72.5, 0.1},  {0, 0x000108} },
-  { "beta_2", {32.5, 75, 0.1},  {0, 0x010004} },
+  { "C-1", {161, -921, 626}, {0, 0}},
+  { "C-2", {40, -673, 378}, {0, 0}},
+  { "C-3", {189, -501, 378}, {0, 0}},
+  { "C-4", {194, 526, 378}, {0, 0}},
+  { "C-5", {40, 800, 378}, {0, 0}},
+  { "C-6", {139, 1073, 626}, {0, 0}},
+  
+  { "B2-1", {-55, -771, 626}, {0, 0}},
+  { "B2-2", {-60, 925, 626}, {0, 0}},
 
-  // gamma: 4
-  { "gamma_1", {17.5, 42.5, 0.1}, {0, 0x000061} },
-  { "gamma_2", {30, 42.5, 0.1},   {0, 0x001050} },
-  { "gamma_3", {42.5, 42.5, 0.1}, {0, 0x000830} },
+  { "D-1", {342, -936, 378}, {0, 0}},
+  { "D-2", {193, -390, 378}, {0, 0}},
+  { "D-3", {705, 64, 374}, {0, 0}},
+  { "D-4", {202, 517, 378}, {0, 0}},
+  { "D-5", {378, 1023, 378}, {0, 0}},
 
-  // delta:7 
-  { "delta_1", {17.5, 55, 0.1}, {0, 0x000302} },
-  { "delta_2", {30, 57.5, 0.1}, {0, 0x000284} },
-  { "delta_3", {42.5, 55, 0.1}, {0, 0x000980} },
+  { "E", {1100, 58, 50}, {0, 0}},
 
-  // epsilon: 10
-  { "epsilon_1", {52.5, 55, 0.1}, {0, 0x002040} },
-  { "epsilon_2", {52.5, 42.5, 0.1}, {0, 0x001200} },
+  { "F-1", {2480, -205, 306}, {0, 0}},
+  { "F-2", {2399, 67, 306}, {0, 0}},
+  { "F-3", {2480, 329, 306}, {0, 0}},
 
-  // zeta: 12
-  { "zeta_1", {30, 32.5, 0.1}, {0, 0x002100} },
-  { "zeta_2", {30, 17.5, 0.1}, {0, 0x005000} },
+  { "G-1", {2516, -100, 306}, {0, 0}},
+  { "G-2", {2527, 232, 306}, {0, 0}},
 
-  // eta: 14
-  { "eta_1", {32.5, 5, 0.1}, {0, 0x00a000} },
-  { "eta_2", {30, 7.5, 0.1}, {0, 0x004008} }
-    
+  { "W-r1", {297, -542, 378}, {0, 0}},
+  { "W-r2", {304, 679, 378}, {0, 0}},
+  { "W-s1", {-578, -1096, 626}, {0, 0}},
+  { "W-s2", {-570, 1221, 626}, {0, 0}},
+
+  { "B-a", { -65, -201, 50}, {0, 0}},
+  { "B-b", { -42, 320, 50}, {0, 0}},
+  { "B-c", { 450, 331, 50}, {0, 0}},
+  { "B-d", { 558, 63, 50}, {0, 0}},
+  { "B-e", { 402, -185, 50}, {0, 0}},
+  { "B-f", {187, -100, 63}, {0, 0}},
+  { "B-g", {0, 62, 59}, {0, 0}},
+  { "B-h", { 180, 275, 63}, {0, 0}},
+  { "B-i", {375, 70, 63}, {0, 0}},
+
+  { "N-1", {-223, 802, 626}, {0, 0}},
+  { "N-2", {-234, 965, 626}, {0, 0}}
+  /*
+
+  // old_alpha: 0
+  { "old_alpha_1", {7.5, 42.5, 0.1}, {0, 0x000012} },
+  { "old_alpha_2", {7.5, 55.0, 0.1}, {0, 0x000081} },
+
+  // old_bold_eta: 2
+  { "old_bold_eta_1", {30, 72.5, 0.1},  {0, 0x000108} },
+  { "old_bold_eta_2", {32.5, 75, 0.1},  {0, 0x010004} },
+
+  // old_gamma: 4
+  { "old_gamma_1", {17.5, 42.5, 0.1}, {0, 0x000061} },
+  { "old_gamma_2", {30, 42.5, 0.1},   {0, 0x001050} },
+  { "old_gamma_3", {42.5, 42.5, 0.1}, {0, 0x000830} },
+
+  // old_delta:7 
+  { "old_delta_1", {17.5, 55, 0.1}, {0, 0x000302} },
+  { "old_delta_2", {30, 57.5, 0.1}, {0, 0x000284} },
+  { "old_delta_3", {42.5, 55, 0.1}, {0, 0x000980} },
+
+  // old_epsilon: 10
+  { "old_epsilon_1", {52.5, 55, 0.1}, {0, 0x002040} },
+  { "old_epsilon_2", {52.5, 42.5, 0.1}, {0, 0x001200} },
+
+  // old_zold_eta: 12
+  { "old_zold_eta_1", {30, 32.5, 0.1}, {0, 0x002100} },
+  { "old_zold_eta_2", {30, 17.5, 0.1}, {0, 0x005000} },
+
+  // old_eta: 14
+  { "old_eta_1", {32.5, 5, 0.1}, {0, 0x00a000} },
+  { "old_eta_2", {30, 7.5, 0.1}, {0, 0x004008} }
+  */
 };
 
 #define NR_POINTS (sizeof (points) / sizeof (points[0]))
 
 static bool within(struct position p,
 		   struct region r) {
-  return p.x >= r.topleft.x 
-    && p.y <= r.topleft.y
-    && p.z <= r.topleft.z
-    && p.x <= r.bottomright.x
-    && p.y >= r.bottomright.y
-    && p.z >= r.bottomright.z;
+  return p.x >= r.bottomleft.x 
+    && p.y >= r.bottomleft.y
+    && p.z >= r.bottomleft.z
+
+    && p.x <= r.topright.x
+    && p.y <= r.topright.y
+    && p.z <= r.topright.z;
 }
 
 static double sqr(double f) { 
@@ -140,13 +212,13 @@ double distance(struct position a, struct  position b,
     }
   }
   if (!a_in_reg) {
-    iprintf ("WARNING: (%4.1f, %4.1f) is not in any region.\n", a.x, a.y);
+    iprintf ("WARNING: (%4.1f, %4.1f, %4.1f) is not in any region.\n", a.x, a.y, a.z);
     if (a.x == 0.0 && a.y == 0.0) {
       kill(getpid(), SIGINT);
     }
   }
   if (!b_in_reg) {
-    iprintf ("WARNING: (%4.1f, %4.1f) is not in any region.\n", b.x, b.y);
+    iprintf ("WARNING: (%4.1f, %4.1f, %4.1f) is not in any region.\n", b.x, b.y, b.z);
     if (b.x == 0.0 && b.y == 0.0) {
       kill(getpid(), SIGINT);
     }
@@ -486,7 +558,7 @@ int main(int args, char ** argv) {
   int self_refs = 0;
   bool r = makeWaypointTable(&wmap, &regs, NR_POINTS, points);
   iprintf ("Waypoint Table: \n");
-  iprintf ("          \t             ");
+  iprintf ("          \t                   ");
 
   for (i=0; i<SIZE(wmap); ++i) {
     iprintf("%6d ", i);
@@ -495,7 +567,7 @@ int main(int args, char ** argv) {
 
 
   for (i=0; i<SIZE(wmap); ++i) {
-    iprintf ("%d: %s\t (%4.1f,%4.1f) ", i, points[i].comment,
+    iprintf ("%d: %5s\t (%7.1f,%7.1f) ", i, points[i].comment,
 	    GET(wmap, i).pos.x, GET(wmap, i).pos.y);
     for (j=0; j<SIZE(wmap); j++) {
       double dist = GET(wmap, i).distances[j];
@@ -510,7 +582,7 @@ int main(int args, char ** argv) {
 	  iprintf ("   X  %c", sep);
 	}
       } else {
-	iprintf ("%6.2f%c", GET(wmap, i).distances[j], sep);
+	iprintf ("%6.1f%c", GET(wmap, i).distances[j], sep);
       }
     }
     iprintf ("\n");
