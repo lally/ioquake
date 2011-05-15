@@ -134,6 +134,15 @@ struct waypoint_init points[] = {
 
 #define NR_POINTS (sizeof (points) / sizeof (points[0]))
 
+typedef struct _path_bitmap_t {
+  bitmap_t high, low;
+} path_bitmap_t;
+
+static void init_path_bitmap( path_bitmap_t *path) {
+  path->high = 0;
+  path->low = 0;
+}
+
 static bool within(struct position p,
 		   struct region r) {
   return p.x >= r.bottomleft.x 
@@ -149,16 +158,25 @@ static double sqr(double f) {
   return f*f;
 }
 
-static inline bool is_set(bitmap_t map, int i) {
-  return (map & (1 << i)) != 0;
+static inline bool is_set(path_bitmap_t *map, int i) {
+  if (i > 31) {
+    return (map->high & (1 << (i-32))) != 0;
+  } else {
+    return (map->low & (1 << i)) != 0;
+  }
 }
 
-static inline bitmap_t set(bitmap_t map, int i) {
-  return map | (1 << i);
+static inline void set(path_bitmap_t *map, int i) {
+  if (i > 31) {
+    map->high |= 1 << (i-32);
+  } else {
+    map->low  |= (1 << i);
+  }
 }
 
-static inline bool full_set(bitmap_t map) {
-  return map == 0xFFFFFFFF;
+static inline bool full_set(path_bitmap_t *map) {
+  return map->high == 0xf && map->low == 0xffffffff;
+  //  return map == 0xFFFFFFFF;
 }
 
 double rawDistance(struct position a, struct position b) {
@@ -253,15 +271,21 @@ bool makeWaypointTable(waypoint_vec_t		*dest,
     int r;
     int offset;
     for (r=0; r<nwaypoints; ++r) {
-      offset = r > 31? 0:1;
-
-      if(is_set(inits[w].reachable_bitmap[offset], r)) {
+      int r_local = r;
+      if (r > 31) {
+	offset = 0;
+	r_local -= 32;
+      } else {
+	offset = 1;
+      }
+      if(inits[w].reachable_bitmap[offset] & (1 << r_local)) {
 	//	iprintf ("  %s: bit %d of 0x%x is set, connecting to %s\n", 
 	//		inits[w].comment, r, inits[w].reachable_bitmap, inits[r].comment);
 	GET(*dest,w).distances[r] = rawDistance(GET(*dest,w).pos, inits[r].p);
-      } else {
+      }  // all routing is now explicit.
+      /*else {
 	GET(*dest,w).distances[r] = distance(GET(*dest,w).pos, inits[r].p, regs);
-      }
+	}*/
     }
   }
   
@@ -433,16 +457,10 @@ void sortedWaypoints(int_vec_t* dest,
   END_DEPTH;
 }
 
-static double pathFindWork(int_vec_t *destpath,
-			   int pos,
-			   int dest,
-			   bitmap_t seen,
-			   const  waypoint_vec_t* map, 
-			   const region_map_t* regs);
 
 static double pathFindWork(int_vec_t *destpath,
 			   int pos, int dest,
-			   bitmap_t seen,
+			   path_bitmap_t seen,
 			   const waypoint_vec_t* wmap,
 			   const region_map_t* regs) {
   BEGIN_DEPTH;
@@ -457,7 +475,7 @@ static double pathFindWork(int_vec_t *destpath,
     return 0.0;
   }
 
-  if (full_set(seen)) { 
+  if (full_set(&seen)) { 
     END_DEPTH;
     return INFINITY; 
   }
@@ -472,7 +490,7 @@ static double pathFindWork(int_vec_t *destpath,
   // remove those we've already seen.
   int j = 0;
   while (j < SIZE(wpoints)) {
-    if (is_set(seen, GET(wpoints,j))) {
+    if (is_set(&seen, GET(wpoints,j))) {
       ERASE(wpoints, j);
     }
     else {
@@ -494,12 +512,13 @@ static double pathFindWork(int_vec_t *destpath,
   COPY(tmp, *destpath);
   int i;
   for (i=0; i<SIZE(wpoints); ++i) {
-    if (!is_set(seen, GET(wpoints,i))) {
+    if (!is_set(&seen, GET(wpoints,i))) {
       double val;
 
       PUSH_BACK(tmp, GET(wpoints,i));
-      val = pathFindWork(&tmp, GET(wpoints,i), dest,
-			 set(seen, GET(wpoints,i)), wmap, regs)
+      path_bitmap_t local_seen = seen;
+      set(&local_seen, GET(wpoints,i));
+      val = pathFindWork(&tmp, GET(wpoints,i), dest, local_seen, wmap, regs)
 	+ GET(*wmap,pos).distances[GET(wpoints,i)];
 
       if (lowest_value == INFINITY 
@@ -525,7 +544,8 @@ bool pathFind(int_vec_t *destpath,
 	      struct position dest,
 	      const waypoint_vec_t* wmap,
 	      const region_map_t* regs) {
-  bitmap_t seen = 0;
+  path_bitmap_t seen;
+  init_path_bitmap(&seen);
   //
   // find the closest positions for 'pos' and 'dest'
   double min_p = INFINITY, min_d = INFINITY;
@@ -543,7 +563,8 @@ bool pathFind(int_vec_t *destpath,
     }
   }
   PUSH_BACK(*destpath,i_p);
-  return pathFindWork(destpath, i_p, i_d, set(seen, i_p), wmap, regs) != INFINITY;
+  set(&seen, i_p);
+  return pathFindWork(destpath, i_p, i_d, seen, wmap, regs) != INFINITY;
 }
 
 
