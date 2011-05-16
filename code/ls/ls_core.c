@@ -1,5 +1,6 @@
 #include "ls_core.h"
 #include "ls_variables.h"
+#include "ls_route.h"
 #include "../client/client.h"
 #include <assert.h>
 #include "../game/g_public.h"
@@ -58,12 +59,122 @@ qboolean LS_Connect () {
 		(int)cg.refdefViewAngles[YAW]);
    
  */
+
+static struct position hardcoded_dest_right = {-388, 550, 626 }; // B-4
+static struct position hardcoded_dest_left = { -381, -792, 626 }; // B-2
+static bool           ls_initialized;
+static region_map_t   s_regs;
+static waypoint_vec_t s_wmap;
+
+struct region regions[] = {
+  // Quad-damage platform (Q)
+  { {120, 50, 1325}, {225, 65, 1355}},
+
+  // Railgun platform (R)
+  { {2300, -250, 300}, { 2600, 350, 335} },
+
+  // Low jump platform (J)
+  { {-72, -210, 45}, {1150, 335, 75} },
+
+  // mid platform (M)
+  { {40, -950, 370}, {710, 1075, 405} },
+
+  // left upper platform (L)
+  { {-600, -1100, 620}, {165, -420, 650} },
+
+  // right upper platform (R)
+  { {-600, 550, 620}, {140, 1300, 650} }
+
+};
+
+struct waypoint_init points[] = {
+  /*
+  Nibbles
+  
+  | Name     | Location               | Bitmap 1 | B0       |          | Bitmap 0 (B3   |             | B2       |          | B1          |          | B0       |           |
+  |----------+------------------------+----------+----------+----------+----------------+-------------+----------+----------+-------------+----------+----------+-----------|
+  | -------- | ---------------------- | Nibble 2 | Nibble 1 | Nibble 0 | Nibble 7       | Nibble 6    | Nibble 5 | Nibble 4 | Nibble 3    | Nibble 2 | Nibble 1 | Nibble 0  |
+  |          |                        | N2, N1   | B ihgf   | Be,d,c,b | Ba, Ws2,s1,Wr2 | Ws1,G2,1,F3 | F21,e,D5 | D4,3,2,1 | B2-2,1,C6,5 | C4,3,2,1 | B6,5,4,3 | B2,1,A2,1 |
+  
+                                          B10,   B76543210..
+  ****************************************************|*****/  
+  { "A-1",      {122,   61,     1330},  {0x000, 0x00000002}},
+  { "A-2",      {220,   59,     1330},  {0x000, 0x00040001}},
+  /*..............................................|...|...*/
+  { "B-1",      {190,   -900,   378},   {0x000, 0x00030600}},
+  { "B-2",      {-381,  -792,   626},   {0x000, 0x20008010}},
+  { "B-3",      {-388,  -425,   626},   {0x000, 0x00000028}},
+  { "B-4",      {-388,  550,    626},   {0x000, 0x00000048}},
+  { "B-5",      {-388,  918,    626},   {0x000, 0x40008020}},
+  { "B-6",      {150,   1052,   378},   {0x000, 0x001c1800}},
+  /*..............................................|...|...*/
+  { "C-1",      {161,   -921,   626},   {0x000, 0x20014000}},
+  { "C-2",      {40,    -673,   378},   {0x000, 0x00034404}},
+  { "C-3",      {189,   -501,   378},   {0x008, 0x00034204}},
+  { "C-4",      {194,   526,    378},   {0x002, 0x00181080}},
+  { "C-5",      {40,    800,    378},   {0x000, 0x00188880}},
+  { "C-6",      {139,   1073,   626},   {0x000, 0x40108000}},
+  /*..............................................|...|...*/
+  { "B2-1",     {-55,   -771,   626},   {0x000, 0x00000108}},
+  { "B2-2",     {-60,   925,    626},   {0x000, 0x00002040}},
+  /*..............................................|...|...*/
+  { "D-1",      {342,   -936,   378},   {0x000, 0x001e0000}},
+  { "D-2",      {193,   -390,   378},   {0x000, 0x001d0000}},
+  { "D-3",      {705,   64,     374},   {0x000, 0x003b0000}},
+  { "D-4",      {202,   517,    378},   {0x000, 0x00170000}},
+  { "D-5",      {378,   1023,   378},   {0x000, 0x000f0000}},
+  /*..............................................|...|...*/
+  { "E",        {1100,  58,     50},    {0x004, 0x008000000}},
+  /*..............................................|...|...*/
+  { "F-1",      {2480,  -205,   306},   {0x000, 0x02020000}},
+  { "F-2",      {2399,  67,     306},   {0x000, 0x06000000}},
+  { "F-3",      {2480,  329,    306},   {0x000, 0x04080000}},
+  /*..............................................|...|...*/
+  { "G-1",      {2516,  -100,   306},   {0x000, 0x04c00000}},
+  { "G-2",      {2527,  232,    306},   {0x000, 0x03800000}},
+  /*..............................................|...|...*/
+  { "W-r1",     {297,   -542,   378},   {0x000, 0x00034404}},
+  { "W-r2",     {304,   679,    378},   {0x000, 0x00181080}},
+  { "W-s1",     {-578,  -1096,  626},   {0x000, 0x00004100}},
+  { "W-s2",     {-570,  1221,   626},   {0x000, 0x0000a000}},
+  /*..............................................|...|...*/
+  { "B-a",      { -65,  -201,   50},    {0x039, 0x00000000}},
+  { "B-b",      { -42,  320,    50},    {0x062, 0x80000000}},
+  { "B-c",      { 450,  331,    50},    {0x0cd, 0x00000000}},
+  { "B-d",      { 558,  63,     50},    {0x08a, 0x00200000}},
+  { "B-e",      { 402,  -185,   50},    {0x096, 0x80000000}},
+  { "B-f",      {187,   -100,   63},    {0x008, 0x80000000}},
+  { "B-g",      {0,     62,     59},    {0x001, 0x80000000}},
+  { "B-h",      { 180,  275,    63},    {0x003, 0x00000000}},
+  { "B-i",      {375,   70,     63},    {0x00e, 0x00000000}}
+};
+
+#define NR_POINTS (sizeof (points) / sizeof (points[0]))
+
+
+
+static void LS_InitPathFinder() {
+  ls_initialized = true;
+  INIT(s_wmap);
+  INIT(s_regs);
+  int i;
+  for (i=0; i<6; ++i) {
+    PUSH_BACK(s_regs, regions[i]);
+  }
+
+  makeWaypointTable(&s_wmap, &s_regs, NR_POINTS, points);
+}
+
 usercmd_t  LS_CreateCmd( void ) {
 	usercmd_t cmd;
 	vec3_t		oldAngles;
 	extern void CL_AdjustAngles(void);
 	extern void CL_FinishMove( usercmd_t *cmd );
 	
+	if (!ls_initialized) {
+	  LS_InitPathFinder();
+	}
+
 	VectorCopy( cl.viewangles, oldAngles );
 
 	// keyboard angle adjustment
@@ -78,8 +189,57 @@ usercmd_t  LS_CreateCmd( void ) {
 	
 	// get basic movement from keyboard
 	//	CL_KeyMove( &cmd );
+	struct position here = { cg.refdef.vieworg[0], cg.refdef.vieworg[1], 
+				 cg.refdef.vieworg[2] };
+
+	qboolean go_right = true;
+	if (here.y > 500) {
+	  go_right = false;
+	}
+	
+	int_vec_t path;
+	INIT(path);
+	qboolean ret = (qboolean) pathFind(&path,here, 
+			 go_rght? hardcoded_dest_right: hardcoded_dest_left,
+			 &s_wmap, &s_regs);
+					
+	// at least for bots, the forward speed is in [0, 400]
+	// ai_main.c:876.
 	cmd.forwardmove = ClampChar(16);
-	cmd.rightmove = ClampChar(-64);
+
+	// Select the next waypoint and point to it.  We may actually
+	// be on the first waypoint right now, so skip if we're already very
+	// close to it.
+	vec3_t pos, dest;
+	pos = cg.refdef.vieworg;
+	if (go_right) {
+	  dest = { hardcoded_dest_right.x, hardcoded_dest_right.y, 
+		   hardcoded_dest_right.z };
+	} else {
+	  dest = { hardcoded_dest_left.x, hardcoded_dest_left.y, 
+		   hardcoded_dest_left.z };
+	}
+
+	int next_index = 0;
+	while (Distance(pos, GET(path, next_index)) < 25.0
+	       && next_index < SIZE(path)) {
+	  next_index++;
+	}
+	if (next_index == SIZE(path)) {
+	  // screw it.
+	  next_index = 0;
+	}
+	// whenI have the direction, use 'vectoangles' to get
+	// it range-converted.  Then pull result[YAW] and give that
+	// to ClampChar().
+	vec3_t move_result;
+	vec3_t direction;
+	VectorSubtract(points[GET(path, next_index)].pos,
+		       pos,
+		       move_result);
+	vectoangles(move_result, direction);
+	cmd.rightmove = ClampChar(direction[YAW]);
+	
 
 	// get basic movement from mouse
 	//	CL_MouseMove( &cmd );
