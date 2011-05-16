@@ -1,4 +1,5 @@
-#include "astar.h"
+#include "ls/ls_route.h"
+#include "qcommon/q_shared.h"
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>` 
