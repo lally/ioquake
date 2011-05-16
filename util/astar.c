@@ -628,5 +628,71 @@ int main(int args, char ** argv) {
     }
     iprintf ("\n");
   }
+
+
+  char startbuffer[128];
+  char endbuffer[128];
+  iprintf ("Interactive mode. Hit Ctrl-C to exit.\n");
+  while (true) {
+    iprintf ("\nStart: ");
+    fgets(startbuffer, 127, stdin);
+    startbuffer[127] = 0;
+    iprintf ("End: ");
+    fgets(endbuffer, 127, stdin);
+    endbuffer[127] = 0;
+
+    char *s, *e;
+    if (strchr(startbuffer, '\n')) {
+      (*strchr(startbuffer, '\n')) = 0;
+    }
+    if (strchr(endbuffer, '\n')) {
+      (*strchr(endbuffer, '\n')) = 0;
+    }
+
+    s = startbuffer;
+    while (isspace(*s))
+      s++;
+    e = endbuffer;
+    while (isspace(*e))
+      e++;
+    
+    
+
+    
+    int start=-1, end=-1;
+    for (i=0; i<SIZE(wmap) && start < 0; ++i) {
+      if (!strcasecmp(s, points[i].comment)) {
+	start = i;
+      }
+    }
+
+    for (i=0; i<SIZE(wmap) && end < 0; ++i) {
+      if (!strcasecmp(e, points[i].comment)) {
+	end = i;
+      }
+    }
+
+    if (start < 0) {
+      iprintf("%s not found.\n", s);
+      continue;
+    }
+    
+    if (end < 0) {
+      iprintf("%s not found.\n", e);
+      continue;
+    }
+    
+    iprintf ("Routing from %s to %s...\n", points[start].comment, 
+	     points[end].comment);
+
+    int_vec_t path;
+    INIT(path);
+    bool ret = pathFind(&path, GET(wmap, start).pos, GET(wmap, end).pos,
+			&wmap, &regs);
+    for (j=0; j<SIZE(path); ++j) {
+      iprintf ("%s (%d) ", points[GET(path,j)].comment, 
+	       GET(path,j));
+    }
+  } 
 }
 //#endif
