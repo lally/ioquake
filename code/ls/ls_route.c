@@ -1,13 +1,15 @@
-#include "ls/ls_route.h"
-#include "qcommon/q_shared.h"
+#include "ls_route.h"
+#include "vector.h"
+#include "../qcommon/q_shared.h"
 #include <math.h>
 #include <stdlib.h>
-#include <string.h>` 
+#include <string.h> 
 #include <assert.h>
 #include <stdio.h>
 #include <signal.h>
 #include <stdarg.h>
 
+#ifdef TESTING_ROUTER
 struct region regions[] = {
   // Quad-damage platform (Q)
   { {120, 50, 1325}, {225, 65, 1355}},
@@ -47,93 +49,63 @@ struct waypoint_init points[] = {
   
                                           B10,   B76543210..
   ****************************************************|*****/  
-  { "A-1",	{122,	61,	1330},	{0x000,	0x00000002}},
-  { "A-2",	{220,	59,	1330},	{0x000,	0x00040001}},
+  { "A-1",      {122,   61,     1330},  {0x000, 0x00000002}},
+  { "A-2",      {220,   59,     1330},  {0x000, 0x00040001}},
   /*..............................................|...|...*/
-  { "B-1",	{190,	-900,	378},	{0x000,	0x00030600}},
-  { "B-2",	{-381,	-792,	626},	{0x000,	0x20008010}},
-  { "B-3",	{-388,	-425,	626},	{0x000,	0x00000028}},
-  { "B-4",	{-388,	550,	626},	{0x000,	0x00000048}},
-  { "B-5",	{-388,	918,	626},	{0x000,	0x40008020}},
-  { "B-6",	{150,	1052,	378},	{0x000,	0x001c1800}},
+  { "B-1",      {190,   -900,   378},   {0x000, 0x00030600}},
+  { "B-2",      {-381,  -792,   626},   {0x000, 0x20008010}},
+  { "B-3",      {-388,  -425,   626},   {0x000, 0x00000028}},
+  { "B-4",      {-388,  550,    626},   {0x000, 0x00000048}},
+  { "B-5",      {-388,  918,    626},   {0x000, 0x40008020}},
+  { "B-6",      {150,   1052,   378},   {0x000, 0x001c1800}},
   /*..............................................|...|...*/
-  { "C-1",	{161,	-921,	626},	{0x000,	0x20014000}},
-  { "C-2",	{40,	-673,	378},	{0x000,	0x00034404}},
-  { "C-3",	{189,	-501,	378},	{0x008,	0x00034204}},
-  { "C-4",	{194,	526,	378},	{0x002,	0x00181080}},
-  { "C-5",	{40,	800,	378},	{0x000,	0x00188880}},
-  { "C-6",	{139,	1073,	626},	{0x000,	0x40108000}},
+  { "C-1",      {161,   -921,   626},   {0x000, 0x20014000}},
+  { "C-2",      {40,    -673,   378},   {0x000, 0x00034404}},
+  { "C-3",      {189,   -501,   378},   {0x008, 0x00034204}},
+  { "C-4",      {194,   526,    378},   {0x002, 0x00181080}},
+  { "C-5",      {40,    800,    378},   {0x000, 0x00188880}},
+  { "C-6",      {139,   1073,   626},   {0x000, 0x40108000}},
   /*..............................................|...|...*/
-  { "B2-1",	{-55,	-771,	626},	{0x000,	0x00000108}},
-  { "B2-2",	{-60,	925,	626},	{0x000,	0x00002040}},
+  { "B2-1",     {-55,   -771,   626},   {0x000, 0x00000108}},
+  { "B2-2",     {-60,   925,    626},   {0x000, 0x00002040}},
   /*..............................................|...|...*/
-  { "D-1",	{342,	-936,	378},	{0x000,	0x001e0000}},
-  { "D-2",	{193,	-390,	378},	{0x000,	0x001d0000}},
-  { "D-3",	{705,	64,	374},	{0x000,	0x003b0000}},
-  { "D-4",	{202,	517,	378},	{0x000,	0x00170000}},
-  { "D-5",	{378,	1023,	378},	{0x000,	0x000f0000}},
+  { "D-1",      {342,   -936,   378},   {0x000, 0x001e0000}},
+  { "D-2",      {193,   -390,   378},   {0x000, 0x001d0000}},
+  { "D-3",      {705,   64,     374},   {0x000, 0x003b0000}},
+  { "D-4",      {202,   517,    378},   {0x000, 0x00170000}},
+  { "D-5",      {378,   1023,   378},   {0x000, 0x000f0000}},
   /*..............................................|...|...*/
-  { "E",	{1100,	58,	50},	{0x004,	0x008000000}},
+  { "E",        {1100,  58,     50},    {0x004, 0x008000000}},
   /*..............................................|...|...*/
-  { "F-1",	{2480,	-205,	306},	{0x000,	0x02020000}},
-  { "F-2",	{2399,	67,	306},	{0x000,	0x06000000}},
-  { "F-3",	{2480,	329,	306},	{0x000,	0x04080000}},
+  { "F-1",      {2480,  -205,   306},   {0x000, 0x02020000}},
+  { "F-2",      {2399,  67,     306},   {0x000, 0x06000000}},
+  { "F-3",      {2480,  329,    306},   {0x000, 0x04080000}},
   /*..............................................|...|...*/
-  { "G-1",	{2516,	-100,	306},	{0x000,	0x04c00000}},
-  { "G-2",	{2527,	232,	306},	{0x000,	0x03800000}},
+  { "G-1",      {2516,  -100,   306},   {0x000, 0x04c00000}},
+  { "G-2",      {2527,  232,    306},   {0x000, 0x03800000}},
   /*..............................................|...|...*/
-  { "W-r1",	{297,	-542,	378},	{0x000,	0x00034404}},
-  { "W-r2",	{304,	679,	378},	{0x000,	0x00181080}},
-  { "W-s1",	{-578,	-1096,	626},	{0x000,	0x00004100}},
-  { "W-s2",	{-570,	1221,	626},	{0x000,	0x0000a000}},
+  { "W-r1",     {297,   -542,   378},   {0x000, 0x00034404}},
+  { "W-r2",     {304,   679,    378},   {0x000, 0x00181080}},
+  { "W-s1",     {-578,  -1096,  626},   {0x000, 0x00004100}},
+  { "W-s2",     {-570,  1221,   626},   {0x000, 0x0000a000}},
   /*..............................................|...|...*/
-  { "B-a",	{ -65,	-201,	50},	{0x039,	0x00000000}},
-  { "B-b",	{ -42,	320,	50},	{0x062,	0x80000000}},
-  { "B-c",	{ 450,	331,	50},	{0x0cd,	0x00000000}},
-  { "B-d",	{ 558,	63,	50},	{0x08a,	0x00200000}},
-  { "B-e",	{ 402,	-185,	50},	{0x096,	0x80000000}},
-  { "B-f",	{187,	-100,	63},	{0x008,	0x80000000}},
-  { "B-g",	{0,	62,	59},	{0x001,	0x80000000}},
-  { "B-h",	{ 180,	275,	63},	{0x003,	0x00000000}},
-  { "B-i",	{375,	70,	63},	{0x00e,	0x00000000}}
-  /*..............................................|...|...*
-  { "N-1",      {-223,  802,    626},   {0x000,	0}},
-  { "N-2",      {-234,  965,    626},   {0x000,	0}}
-  /*
-
-  // old_alpha: 0
-  { "old_alpha_1", {7.5, 42.5, 0.1}, {0, 0x000012} },
-  { "old_alpha_2", {7.5, 55.0, 0.1}, {0, 0x000081} },
-
-  // old_bold_eta: 2
-  { "old_bold_eta_1", {30, 72.5, 0.1},  {0, 0x000108} },
-  { "old_bold_eta_2", {32.5, 75, 0.1},  {0, 0x010004} },
-
-  // old_gamma: 4
-  { "old_gamma_1", {17.5, 42.5, 0.1}, {0, 0x000061} },
-  { "old_gamma_2", {30, 42.5, 0.1},   {0, 0x001050} },
-  { "old_gamma_3", {42.5, 42.5, 0.1}, {0, 0x000830} },
-
-  // old_delta:7 
-  { "old_delta_1", {17.5, 55, 0.1}, {0, 0x000302} },
-  { "old_delta_2", {30, 57.5, 0.1}, {0, 0x000284} },
-  { "old_delta_3", {42.5, 55, 0.1}, {0, 0x000980} },
-
-  // old_epsilon: 10
-  { "old_epsilon_1", {52.5, 55, 0.1}, {0, 0x002040} },
-  { "old_epsilon_2", {52.5, 42.5, 0.1}, {0, 0x001200} },
-
-  // old_zold_eta: 12
-  { "old_zold_eta_1", {30, 32.5, 0.1}, {0, 0x002100} },
-  { "old_zold_eta_2", {30, 17.5, 0.1}, {0, 0x005000} },
-
-  // old_eta: 14
-  { "old_eta_1", {32.5, 5, 0.1}, {0, 0x00a000} },
-  { "old_eta_2", {30, 7.5, 0.1}, {0, 0x004008} }
-  */
+  { "B-a",      { -65,  -201,   50},    {0x039, 0x00000000}},
+  { "B-b",      { -42,  320,    50},    {0x062, 0x80000000}},
+  { "B-c",      { 450,  331,    50},    {0x0cd, 0x00000000}},
+  { "B-d",      { 558,  63,     50},    {0x08a, 0x00200000}},
+  { "B-e",      { 402,  -185,   50},    {0x096, 0x80000000}},
+  { "B-f",      {187,   -100,   63},    {0x008, 0x80000000}},
+  { "B-g",      {0,     62,     59},    {0x001, 0x80000000}},
+  { "B-h",      { 180,  275,    63},    {0x003, 0x00000000}},
+  { "B-i",      {375,   70,     63},    {0x00e, 0x00000000}}
+  /*..............................................|...|...*/
 };
 
 #define NR_POINTS (sizeof (points) / sizeof (points[0]))
+#else
+// 'big enough'
+#define NR_POINTS (64) 
+#endif
 
 typedef struct _path_bitmap_t {
   bitmap_t high, low;
@@ -191,7 +163,6 @@ static int s_depth;
 
 void iprintf(const char *fmt, ...)
 {
-  char *p;
   va_list ap;
   va_start(ap, fmt);
   int nl_cnt = 0;
@@ -201,7 +172,7 @@ void iprintf(const char *fmt, ...)
   if (nl_cnt && s_depth) {
     c = (char*) malloc(strlen(fmt) + 2*s_depth*nl_cnt + 1);
     char *src=(char*)fmt, *dest=c;
-    while (*dest++ = *src++) {
+    while ((*dest++ = *src++)) {
       if (*(dest-1) == '\n') {
 	int i;
 	for (i=0; i<s_depth; ++i) {
@@ -216,6 +187,10 @@ void iprintf(const char *fmt, ...)
   va_end(ap);
   if (nl_cnt && s_depth) free(c);
 }
+
+
+// search for a constant big enough to use.
+#define INFINITY (HUGE_VAL)
 
 double distance(struct position a, struct  position b,
 		const region_map_t* regs) {
@@ -236,15 +211,9 @@ double distance(struct position a, struct  position b,
   }
   if (!a_in_reg) {
     iprintf ("WARNING: (%4.1f, %4.1f, %4.1f) is not in any region.\n", a.x, a.y, a.z);
-    if (a.x == 0.0 && a.y == 0.0) {
-      kill(getpid(), SIGINT);
-    }
   }
   if (!b_in_reg) {
     iprintf ("WARNING: (%4.1f, %4.1f, %4.1f) is not in any region.\n", b.x, b.y, b.z);
-    if (b.x == 0.0 && b.y == 0.0) {
-      kill(getpid(), SIGINT);
-    }
   }
   return INFINITY;
 }
@@ -293,23 +262,9 @@ bool makeWaypointTable(waypoint_vec_t		*dest,
   return true;
 }
 
-//==================================================================
-/*
-struct IndirectPointSort{
-  const double *distances;
-  IndirectPointSort(const double *d) : distances(d) {}
-
-  // sort operator, but we want ascending distances.
-  bool operator()(int a, int b) {
-    return (distances[b] == INFINITY)
-	|| (distances[a] != INFINITY  
-	    && distances[a] < distances[b]);
-    //    return distances[a] > distances[b];
-  }
-};
-*/
 
 static void ppoints(int_vec_t* p) {
+#ifdef TESTING_ROUTER   
   if (p == NULL) { puts("null"); }
   else if (SIZE(*p) == 0) { puts("empty"); }
   else {
@@ -323,9 +278,12 @@ static void ppoints(int_vec_t* p) {
     }
     iprintf("\n");
   }
+#endif
 }
 
+#ifdef TESTING_ROUTER
 typedef unsigned char byte;
+#endif
 
 void swapb(void *ap, void *bp, int sz) {
   byte *a = (byte*) ap;
@@ -569,13 +527,15 @@ bool pathFind(int_vec_t *destpath,
 }
 
 
+#ifdef TESTING_ROUTER
 /* test routine */
-int main(int args, char ** argv) {
+int test_main(int args, char ** argv) {
   int i,j;
   waypoint_vec_t wmap;
   region_map_t regs;
   INIT(wmap);
   INIT(regs);
+  bool ret;
 
   for (i=0; i<7; i++) {
     PUSH_BACK(regs, regions[i]);
@@ -620,8 +580,8 @@ int main(int args, char ** argv) {
   for (i=0; i<SIZE(wmap); ++i) {
     int_vec_t path;
     INIT(path);
-    bool ret = pathFind(&path, GET(wmap,0).pos, GET(wmap, i).pos,
-			&wmap, &regs);
+    ret = pathFind(&path, GET(wmap,0).pos, GET(wmap, i).pos,
+                   &wmap, &regs);
     iprintf ("RESULT:  %d to %d: ", 0, i);
     for (j=0; j<SIZE(path); ++j) {
       iprintf ("%s (%d) ", points[GET(path,j)].comment, 
@@ -688,12 +648,12 @@ int main(int args, char ** argv) {
 
     int_vec_t path;
     INIT(path);
-    bool ret = pathFind(&path, GET(wmap, start).pos, GET(wmap, end).pos,
-			&wmap, &regs);
+    ret = pathFind(&path, GET(wmap, start).pos, GET(wmap, end).pos,
+                   &wmap, &regs);
     for (j=0; j<SIZE(path); ++j) {
       iprintf ("%s (%d) ", points[GET(path,j)].comment, 
 	       GET(path,j));
     }
   } 
 }
-//#endif
+#endif

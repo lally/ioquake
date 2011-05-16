@@ -16,7 +16,8 @@ int vector_push(struct vec_basis* basis,
 int vector_erase(struct vec_basis* basis,
 		 int index,
 		 int size);
-
+int vector_resize(struct vec_basis* basis, 
+                  int newcount, int sz);
 int vector_free(struct vec_basis* basis);
 int vector_copy(struct vec_basis* dest,
 		struct vec_basis* src,

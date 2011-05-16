@@ -189,8 +189,10 @@ usercmd_t  LS_CreateCmd( void ) {
 	
 	// get basic movement from keyboard
 	//	CL_KeyMove( &cmd );
-	struct position here = { cg.refdef.vieworg[0], cg.refdef.vieworg[1], 
-				 cg.refdef.vieworg[2] };
+	struct position here = { cl.viewangles[0], cl.viewangles[1], 
+                             cl.viewangles[2] };
+
+    /* NOTE: Behavioral code goes here. */
 
 	qboolean go_right = true;
 	if (here.y > 500) {
@@ -199,8 +201,8 @@ usercmd_t  LS_CreateCmd( void ) {
 	
 	int_vec_t path;
 	INIT(path);
-	qboolean ret = (qboolean) pathFind(&path,here, 
-			 go_rght? hardcoded_dest_right: hardcoded_dest_left,
+    pathFind(&path,here, 
+			 go_right? hardcoded_dest_right: hardcoded_dest_left,
 			 &s_wmap, &s_regs);
 					
 	// at least for bots, the forward speed is in [0, 400]
@@ -210,33 +212,42 @@ usercmd_t  LS_CreateCmd( void ) {
 	// Select the next waypoint and point to it.  We may actually
 	// be on the first waypoint right now, so skip if we're already very
 	// close to it.
-	vec3_t pos, dest;
-	pos = cg.refdef.vieworg;
+	vec3_t dest;
 	if (go_right) {
-	  dest = { hardcoded_dest_right.x, hardcoded_dest_right.y, 
-		   hardcoded_dest_right.z };
+        dest[0] = hardcoded_dest_right.x;
+        dest[1] = hardcoded_dest_right.y;
+        dest[2] = hardcoded_dest_right.z;
 	} else {
-	  dest = { hardcoded_dest_left.x, hardcoded_dest_left.y, 
-		   hardcoded_dest_left.z };
+        dest[0] = hardcoded_dest_left.x;
+        dest[1] = hardcoded_dest_left.y;
+        dest[2] = hardcoded_dest_left.z;
 	}
 
-	int next_index = 0;
-	while (Distance(pos, GET(path, next_index)) < 25.0
-	       && next_index < SIZE(path)) {
-	  next_index++;
-	}
+	int next_index = -1;
+    vec3_t next_pos;
+    do {
+        next_index++;
+        next_pos[0] = points[GET(path, next_index)].p.x;
+        next_pos[1] = points[GET(path, next_index)].p.y;
+        next_pos[2] = points[GET(path, next_index)].p.z;
+    }
+	while (Distance(cl.viewangles, next_pos) < 25.0
+	       && next_index < SIZE(path));
+
 	if (next_index == SIZE(path)) {
-	  // screw it.
-	  next_index = 0;
+        // screw it.
+        next_index = 0;
+        next_pos[0] = points[GET(path, next_index)].p.x;
+        next_pos[1] = points[GET(path, next_index)].p.y;
+        next_pos[2] = points[GET(path, next_index)].p.z;
 	}
+
 	// whenI have the direction, use 'vectoangles' to get
 	// it range-converted.  Then pull result[YAW] and give that
 	// to ClampChar().
 	vec3_t move_result;
 	vec3_t direction;
-	VectorSubtract(points[GET(path, next_index)].pos,
-		       pos,
-		       move_result);
+	VectorSubtract(next_pos, cl.viewangles, move_result);
 	vectoangles(move_result, direction);
 	cmd.rightmove = ClampChar(direction[YAW]);
 	
@@ -265,6 +276,7 @@ usercmd_t  LS_CreateCmd( void ) {
  * BOTLIB-CLIENT INTEGRATION SUPPORT
  *****************************************************************************/
 intptr_t LS_GameSystemCalls(intptr_t *args) {
+    return 0;
 	/*
 	// modeled after SV_GameSystemCalls().
 	switch( args[0] ) {
@@ -790,6 +802,7 @@ intptr_t LS_GameSystemCalls(intptr_t *args) {
 	}
 	return -1;	
 */
+    return -1;
 }
 
 void LS_SetPointers(struct clientActive_s *client_state,
