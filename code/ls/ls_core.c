@@ -210,7 +210,7 @@ usercmd_t  LS_CreateCmd( void ) {
                                         
   // at least for bots, the forward speed is in [0, 400]
   // ai_main.c:876.
-  cmd.forwardmove = ClampChar(16);
+  cmd.forwardmove = ClampChar(400);
 
   // Select the next waypoint and point to it.  We may actually
   // be on the first waypoint right now, so skip if we're already very
