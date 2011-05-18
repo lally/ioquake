@@ -18,5 +18,7 @@ then
   echo "You'll have to re-run this script to launch ioquake, it probably won't work this time."
 fi
 
-DISPLAY=$NEWDISP ./ioquake3.i386 "$@"
+SERVER=`ifconfig nge0 | grep inet | cut -d ' ' -f 2`
+
+DISPLAY=$NEWDISP ./ioquake3.i386 +connect $SERVER "$@"
 

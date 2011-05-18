@@ -33,7 +33,7 @@ qboolean LS_Enabled () {
 		s_queried = qtrue;
 		s_enabled = ls_pref_value(LSP_SIMULATOR);
 	}
-	return s_enabled && s_botlib;
+	return s_enabled; // && s_botlib;
 }
 
 qboolean LS_Connect () {
@@ -68,24 +68,24 @@ static waypoint_vec_t s_wmap;
 
 struct region regions[] = {
   // Quad-damage platform (Q)
-  { {120, 50, 1325}, {225, 65, 1355}},
+  { {120, 50, 1290}, {225, 65, 1355}},
 
   // Railgun platform (R)
-  { {2300, -250, 300}, { 2600, 350, 335} },
+  { {2300, -250, 270}, { 2600, 350, 335} },
 
   // Low jump platform (J)
-  { {-72, -210, 45}, {1150, 335, 75} },
+  { {-372, -300, 15}, {1150, 500, 75} },
 
   // mid platform (M)
-  { {40, -950, 370}, {710, 1075, 405} },
+  { {-710, -1200, 305}, {710, 1200, 405} },
 
   // left upper platform (L)
-  { {-600, -1100, 620}, {165, -420, 650} },
+  { {-600, -1100, 590}, {500, -400, 650} },
 
   // right upper platform (R)
-  { {-600, 550, 620}, {140, 1300, 650} }
-
+  { {-600, 550, 590}, {500, 1300, 650} }
 };
+
 
 struct waypoint_init points[] = {
   /*
@@ -101,24 +101,24 @@ struct waypoint_init points[] = {
   { "A-1",      {122,   61,     1330},  {0x000, 0x00000002}},
   { "A-2",      {220,   59,     1330},  {0x000, 0x00040001}},
   /*..............................................|...|...*/
-  { "B-1",      {190,   -900,   378},   {0x000, 0x00030600}},
+  { "B-1",      {190,   -900,   378},   {0x000, 0x00040000}},
   { "B-2",      {-381,  -792,   626},   {0x000, 0x20008010}},
-  { "B-3",      {-388,  -425,   626},   {0x000, 0x00000028}},
-  { "B-4",      {-388,  550,    626},   {0x000, 0x00000048}},
+  { "B-3",      {-388,  -425,   626},   {0x000, 0x00000040}},
+  { "B-4",      {-388,  550,    626},   {0x000, 0x00000008}},
   { "B-5",      {-388,  918,    626},   {0x000, 0x40008020}},
-  { "B-6",      {150,   1052,   378},   {0x000, 0x001c1800}},
+  { "B-6",      {150,   1052,   378},   {0x000, 0x00040000}},
   /*..............................................|...|...*/
   { "C-1",      {161,   -921,   626},   {0x000, 0x20014000}},
-  { "C-2",      {40,    -673,   378},   {0x000, 0x00034404}},
-  { "C-3",      {189,   -501,   378},   {0x008, 0x00034204}},
-  { "C-4",      {194,   526,    378},   {0x002, 0x00181080}},
-  { "C-5",      {40,    800,    378},   {0x000, 0x00188880}},
+  { "C-2",      {40,    -673,   378},   {0x000, 0x00034000}},
+  { "C-3",      {189,   -501,   378},   {0x008, 0x00034200}},
+  { "C-4",      {194,   526,    378},   {0x002, 0x00181000}},
+  { "C-5",      {40,    800,    378},   {0x000, 0x00188800}},
   { "C-6",      {139,   1073,   626},   {0x000, 0x40108000}},
   /*..............................................|...|...*/
-  { "B2-1",     {-55,   -771,   626},   {0x000, 0x00000108}},
-  { "B2-2",     {-60,   925,    626},   {0x000, 0x00002040}},
+  { "B2-1",     {-55,   -771,   626},   {0x000, 0x20000108}},
+  { "B2-2",     {-60,   925,    626},   {0x000, 0x40002040}},
   /*..............................................|...|...*/
-  { "D-1",      {342,   -936,   378},   {0x000, 0x001e0000}},
+  { "D-1",      {342,   -936,   378},   {0x000, 0x001e0600}},
   { "D-2",      {193,   -390,   378},   {0x000, 0x001d0000}},
   { "D-3",      {705,   64,     374},   {0x000, 0x003b0000}},
   { "D-4",      {202,   517,    378},   {0x000, 0x00170000}},
@@ -189,8 +189,15 @@ usercmd_t  LS_CreateCmd( void ) {
 	
 	// get basic movement from keyboard
 	//	CL_KeyMove( &cmd );
-	struct position here = { cl.viewangles[0], cl.viewangles[1], 
-                             cl.viewangles[2] };
+    //    vec3_t here_pos;
+    //    here_pos = cl.snap.ps.origin;
+	struct position here = { cl.snap.ps.origin[0], cl.snap.ps.origin[1], cl.snap.ps.origin[2] };
+
+/*{ cl.viewangles[0], cl.viewangles[1], 
+                             cl.viewangles[2] };*/
+
+    Com_Printf("We are at: (%6.2f, %6.2f, %6.2f)\n",
+               here.x, here.y, here.z);
 
     /* NOTE: Behavioral code goes here. */
 
@@ -207,8 +214,13 @@ usercmd_t  LS_CreateCmd( void ) {
 					
 	// at least for bots, the forward speed is in [0, 400]
 	// ai_main.c:876.
-	cmd.forwardmove = ClampChar(16);
-
+    //	cmd.forwardmove = ClampChar(16);
+    Com_Printf("Path is: ");
+    int i;
+    for (i=0; i<SIZE(path); ++i) {
+        Com_Printf("%s ", points[GET(path, i)].comment);
+    }
+    Com_Printf("\n");
 	// Select the next waypoint and point to it.  We may actually
 	// be on the first waypoint right now, so skip if we're already very
 	// close to it.
@@ -229,7 +241,8 @@ usercmd_t  LS_CreateCmd( void ) {
         next_index++;
         next_pos[0] = points[GET(path, next_index)].p.x;
         next_pos[1] = points[GET(path, next_index)].p.y;
-        next_pos[2] = points[GET(path, next_index)].p.z;
+        // quietly ignore the Z elements of our destination.
+        next_pos[2] = dest[2]; // points[GET(path, next_index)].p.z;
     }
 	while (Distance(cl.viewangles, next_pos) < 25.0
 	       && next_index < SIZE(path));
@@ -239,7 +252,8 @@ usercmd_t  LS_CreateCmd( void ) {
         next_index = 0;
         next_pos[0] = points[GET(path, next_index)].p.x;
         next_pos[1] = points[GET(path, next_index)].p.y;
-        next_pos[2] = points[GET(path, next_index)].p.z;
+        // quietly ignore the Z elements of our destination.
+        next_pos[2] = dest[2]; // points[GET(path, next_index)].p.z;
 	}
 
 	// whenI have the direction, use 'vectoangles' to get

@@ -10,32 +10,32 @@
 #include <stdarg.h>
 
 #ifdef TESTING_ROUTER
+/*
+
+  THESE ARE THE WRONG ONES!!!
+
+  THEY ARE NOT USED IN THE LOAD SIMULATOR!!!  SEE ls_core.c
+
+ */
 struct region regions[] = {
   // Quad-damage platform (Q)
-  { {120, 50, 1325}, {225, 65, 1355}},
+  { {120, 50, 1290}, {225, 65, 1355}},
 
   // Railgun platform (R)
-  { {2300, -250, 300}, { 2600, 350, 335} },
+  { {2300, -250, 270}, { 2600, 350, 335} },
 
   // Low jump platform (J)
-  { {-72, -210, 45}, {1150, 335, 75} },
+  { {-72, -210, 15}, {1150, 335, 75} },
 
   // mid platform (M)
-  { {40, -950, 370}, {710, 1075, 405} },
+  { {-710, -950, 340}, {710, 1200, 405} },
 
   // left upper platform (L)
-  { {-600, -1100, 620}, {165, -420, 650} },
+  { {-600, -1100, 590}, {165, -420, 650} },
 
   // right upper platform (R)
-  { {-600, 550, 620}, {140, 1300, 650} }
+  { {-600, 550, 590}, {500, 1300, 650} }
 
-  /*  { {0, 40, 0}, {10, 60, 1} }, // old_alpha
-  { {25, 70, 0}, {35, 80, 1}}, // old_bold_eta
-  { {15, 50, 0}, {45, 60, 1}}, // old_gamma -- ?
-  { {15, 40, 0}, {45, 45, 1}}, // old_delta -- ?
-  { {50, 40, 0}, {60, 60, 1}}, // old_epsilon
-  { {25, 15, 0}, {35, 35, 1}}, // old_zold_eta
-  { {25, 0, 0}, {35, 10, 1}}   // old_eta  */
 };
 
 struct waypoint_init points[] = {
@@ -191,6 +191,8 @@ void iprintf(const char *fmt, ...)
 
 // search for a constant big enough to use.
 #define INFINITY (HUGE_VAL)
+static int warn_count;
+
 
 double distance(struct position a, struct  position b,
 		const region_map_t* regs) {
@@ -210,11 +212,16 @@ double distance(struct position a, struct  position b,
     }
   }
   if (!a_in_reg) {
-    iprintf ("WARNING: (%4.1f, %4.1f, %4.1f) is not in any region.\n", a.x, a.y, a.z);
+      iprintf ("%7d WARNING(a): (%4.1f, %4.1f, %4.1f) is not in any region.\n", warn_count,
+               a.x, a.y, a.z);
+      warn_count++;
   }
   if (!b_in_reg) {
-    iprintf ("WARNING: (%4.1f, %4.1f, %4.1f) is not in any region.\n", b.x, b.y, b.z);
+      iprintf ("%7d WARNING(b): (%4.1f, %4.1f, %4.1f) is not in any region.\n", warn_count,
+               b.x, b.y, b.z);
+      warn_count++;
   }
+  
   return INFINITY;
 }
 
@@ -471,24 +478,26 @@ static double pathFindWork(int_vec_t *destpath,
   COPY(tmp, *destpath);
   int i;
   for (i=0; i<SIZE(wpoints); ++i) {
-    if (!is_set(&seen, GET(wpoints,i))) {
-      double val;
+      if (!is_set(&seen, GET(wpoints,i))) {
+          double val;
 
-      PUSH_BACK(tmp, GET(wpoints,i));
-      path_bitmap_t local_seen = seen;
-      set(&local_seen, GET(wpoints,i));
-      val = pathFindWork(&tmp, GET(wpoints,i), dest, local_seen, wmap, regs)
-	+ GET(*wmap,pos).distances[GET(wpoints,i)];
+          PUSH_BACK(tmp, GET(wpoints,i));
+          path_bitmap_t local_seen = seen;
+          set(&local_seen, GET(wpoints,i));
+          val = pathFindWork(&tmp, GET(wpoints,i), dest, local_seen, wmap, regs)
+              + GET(*wmap,pos).distances[GET(wpoints,i)];
 
-      if (lowest_value == INFINITY 
-	  || (val != INFINITY && val < lowest_value)) {
-	lowest_value = val;
-	lowest_idx = GET(wpoints,i);
-	COPY(*destpath, tmp);
-      } 
+          if (lowest_value == INFINITY 
+              || (val != INFINITY && val < lowest_value)) {
+              lowest_value = val;
+              lowest_idx = GET(wpoints,i);
+              COPY(*destpath, tmp);
+              END_DEPTH;
+              return val;
+          } 
 
-      RESIZE(tmp, offset);
-    }
+          RESIZE(tmp, offset);
+      }
   }
 
   // at the end, destpath has the minimum path we've seen so far,
