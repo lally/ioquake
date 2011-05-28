@@ -15,8 +15,8 @@ static botlib_export_t *s_botlib;
 static clientActive_t  *s_cl;
 static clientStatic_t  *s_cls;
 
-static unsigned s_frame_msec;
-static int              s_old_com_frameTime;
+//static unsigned s_frame_msec;
+//static int              s_old_com_frameTime;
 
 typedef struct bot_debugpoly_s {
   int inuse;
@@ -186,8 +186,8 @@ static char * point_desc(int point) {
     return buf;
 }
 
-
-static void LS_InitPathFinder() {
+static void LS_InitPathFinder(void);
+static void LS_InitPathFinder(void) {
   ls_initialized = true;
   INIT(s_wmap);
   INIT(s_regs);
@@ -245,84 +245,84 @@ usercmd_t  LS_CreateCmd( void ) {
 	//	CL_KeyMove( &cmd );
     //    vec3_t here_pos;
     //    here_pos = cl.snap.ps.origin;
-	struct position here = { cl.snap.ps.origin[0], cl.snap.ps.origin[1], cl.snap.ps.origin[2] };
-
-/*{ cl.viewangles[0], cl.viewangles[1], 
-                             cl.viewangles[2] };*/
-
+    pos_vec_conversion_t here;
+    VectorCopy(cl.snap.ps.origin, here.vec);
 
     /* NOTE: Behavioral code goes here. */
 
 	qboolean go_right = true;
-	if (here.y > 500) {
+	if (here.pos.y > 500) {
 	  go_right = false;
 	}
 	
+    // Our forward velocity.  We may change this, depending upon the
+    // destination point, its flags, and our distance from it.  At
+    // least for bots, the forward speed is in [0, 400] ai_main.c:876.
+    const float full_forward_velocity = 127.0;
+    const float slow_forward_velocity = 5.0;
+    float forward_velocity = full_forward_velocity;
+
+    //
+    // Get our current waypoint.
 	int_vec_t path;
 	INIT(path);
-    pathFind(&path,here, 
-			 go_right? hardcoded_dest_right: hardcoded_dest_left,
-			 &s_wmap, &s_regs);
-					
-	// at least for bots, the forward speed is in [0, 400]
-	// ai_main.c:876.
-    cmd.forwardmove = ClampChar(28);
 
-	// Select the next waypoint and point to it.  We may actually
-	// be on the first waypoint right now, so skip if we're already very
-	// close to it.
-	vec3_t dest;
-	if (go_right) {
-        dest[0] = hardcoded_dest_right.x;
-        dest[1] = hardcoded_dest_right.y;
-        dest[2] = hardcoded_dest_right.z;
-	} else {
-        dest[0] = hardcoded_dest_left.x;
-        dest[1] = hardcoded_dest_left.y;
-        dest[2] = hardcoded_dest_left.z;
-	}
+    // choose our destination
+	pos_vec_conversion_t dest;
+    dest.pos = go_right? hardcoded_dest_right : hardcoded_dest_left;
 
-	int next_index = -1;
-    vec3_t next_pos;
+    // Get the path we're on.  Reroute if we're actually closest to
+    // our destination.  
+    // TODO(lally): swap this with real route-determination code later.
     do {
-        next_index++;
-        next_pos[0] = points[GET(path, next_index)].p.x;
-        next_pos[1] = points[GET(path, next_index)].p.y;
-        // quietly ignore the Z elements of our destination.
-        next_pos[2] = dest[2]; // points[GET(path, next_index)].p.z;
+        pathFind(&path, here.pos, dest.pos, &s_wmap, &s_regs);
+        go_right ^= 1;
+    } while (SIZE(path) < 2);
+
+    // for convenience, save our position locally.
+    vec3_t position;
+    VectorCopy(cl.snap.ps.origin, position);
+
+    int waypoint_index = GET(path,0);
+    int waypoint_flags = points[waypoint_index].flags;
+
+    // We may be closer to a further-on waypoint than our current one.
+    // >> How does this interact with the 'route-only' flag?  We won't
+    // >> skip the old waypoint if the new one is route-only.
+    pos_vec_conversion_t wp0, wp1;
+    wp0.pos = points[GET(path, 0)].p;
+    wp1.pos = points[GET(path, 1)].p;
+
+    if (waypoint_flags & LPR_SLOWAPPROACH) {
+        forward_velocity = slow_forward_velocity;
     }
-	while (Distance(cl.snap.ps.origin, next_pos) < 100.0
-	       && next_index < SIZE(path));
 
-	if (next_index == SIZE(path)) {
-        // screw it.
-        next_index = 0;
-        next_pos[0] = points[GET(path, next_index)].p.x;
-        next_pos[1] = points[GET(path, next_index)].p.y;
-        // quietly ignore the Z elements of our destination.
-        next_pos[2] = dest[2]; // points[GET(path, next_index)].p.z;
-	}
-    else {
-        // make sure we're not closer to any other points.
-        double best_dist = Distance(cl.snap.ps.origin, next_pos);
-        vec3_t tmp;
-        int nni;
-        int best_so_far = next_index;
-        for (nni = next_index; nni < SIZE(path); ++nni) {
-            tmp[0] = points[GET(path, nni)].p.x;
-            tmp[0] = points[GET(path, nni)].p.x;
-            tmp[2] = dest[2];
+    vec3_t next_pos;
+    VectorCopy(wp0.vec, next_pos);
 
-            double cur_dist = Distance(cl.snap.ps.origin, tmp);
-            if (cur_dist < best_dist) {
-                best_so_far = nni;
-                VectorCopy(tmp, next_pos);
-                best_dist = cur_dist;
-            }
-            
-        }
+    // We may be in between waypoints 0 and 1 right now.  If we're
+    // closer to waypoint 1 than waypoint 0, make 1 our current
+    // destination, and adjust our speed.
+    float dist_w0 = Distance(wp0.vec, wp1.vec);
+    float dist_w1 = Distance(position, wp1.vec);
+    if ( dist_w0 > dist_w1 && !(points[GET(path,1)].flags & LPR_ROUTEONLY)) {
+        waypoint_index = GET(path, 1);
+        waypoint_flags = points[waypoint_index].flags;
+        VectorCopy(wp1.vec, next_pos);
 
+        // interpolate speeds between the proper speeds of the new
+        // waypoint.
+        float new_wp_speed = waypoint_flags & LPR_SLOWAPPROACH? 
+            slow_forward_velocity : full_forward_velocity;
+
+        forward_velocity = new_wp_speed
+            + ((forward_velocity - new_wp_speed) * (dist_w1 / dist_w0));
     }
+
+    if (waypoint_flags & LPR_JUMP)
+        cmd.forwardmove = 0;
+    else 
+        cmd.forwardmove = ClampChar(forward_velocity);
 
 	// when I have the direction, use 'vectoangles' to get
 	// it range-converted.  Then pull result[YAW] and give that
@@ -332,8 +332,8 @@ usercmd_t  LS_CreateCmd( void ) {
 	VectorSubtract(next_pos, cl.snap.ps.origin, move_result);
 	vectoangles(move_result, direction);
 
-    double dy = next_pos[1] - here.y;
-    double r = sqrt(sqr(next_pos[1] - here.y) + sqr(next_pos[0] - here.x));
+    double dy = next_pos[1] - here.pos.y;
+    double r = sqrt(sqr(next_pos[1] - here.pos.y) + sqr(next_pos[0] - here.pos.x));
 
     double theta = asin(fabs(dy)/fabs(r));
 
@@ -358,29 +358,16 @@ usercmd_t  LS_CreateCmd( void ) {
 
     double normalized_dir_yaw = -normalize_dir(direction[YAW]);
 
-    double desired_final_dir = theta - normalized_dir_yaw;
+    //    double desired_final_dir = theta - normalized_dir_yaw;
 
-    // simple sign-based steering.
-    /*    if (fabs(desired_final_dir) > 10.0) {
-        if (desired_final_dir > 0) {
-            cmd.rightmove = -32;
-        }
-        else {
-            cmd.rightmove = 32;
-        }
-    } else {
-        cmd.rightmove = 0;
-        }*/
-    //    cmd.rightmove = ClampChar(desired_final_dir); // direction[YAW]);
     cmd.rightmove = ClampChar(normalized_dir_yaw);
-    
 	
     if (print_counter % 64 == 0) {
-        int closest_point = closestWayPoint(here, &s_wmap, &s_regs);
+        int closest_point = closestWayPoint(here.pos, &s_wmap, &s_regs);
 
         Com_Printf("We are at: (%6.2f, %6.2f, %6.2f)\n",
-                   here.x, here.y, here.z);
-        Com_Printf("Path is (from %s, idx %d): ", point_desc(closest_point), next_index);
+                   here.pos.x, here.pos.y, here.pos.z);
+        Com_Printf("Path is (from %s, idx %d): ", point_desc(closest_point), waypoint_index);
         int i;
         for (i=0; i<SIZE(path); ++i) {
             Com_Printf("%s ", points[GET(path, i)].comment);
@@ -392,18 +379,11 @@ usercmd_t  LS_CreateCmd( void ) {
         
         Com_Printf("Going %6.2fdeg for (%6.2f,%6.2f,%6.2f)->(%6.2f,%6.2f,%6.2f)\n", 
                    (double) cmd.rightmove,
-                   here.x, here.y, here.z,
+                   here.pos.x, here.pos.y, here.pos.z,
                    next_pos[0], next_pos[1], next_pos[2]);
     }
 
     print_counter++;
-
-	// get basic movement from mouse
-	//	CL_MouseMove( &cmd );
-	// Some of this is fancy, but I donno if we really need it.
-
-	// get basic movement from joystick
-	//	CL_JoystickMove( &cmd );
 
 	// check to make sure the angles haven't wrapped
 	if ( cl.viewangles[PITCH] - oldAngles[PITCH] > 90 ) {
@@ -953,13 +933,13 @@ intptr_t LS_GameSystemCalls(intptr_t *args) {
 
 void LS_SetPointers(struct clientActive_s *client_state,
                     struct clientStatic_s *client_static) {
-  if (client_state) {
-    s_cl = client_state;
-  }
+    if (client_state) {
+        s_cl = (clientActive_t*) client_state;
+    }
 
-  if (client_static) {
-    s_cls = client_static;
-  }
+    if (client_static) {
+        s_cls = (clientStatic_t*) client_static;
+    }
 };
 
 static QDECL void ls_bi_print(int type, char *fmt, ...) {

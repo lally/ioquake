@@ -1,6 +1,7 @@
 #ifndef INCLUDE_ASTAR_H
 #define INCLUDE_ASTAR_H
 #include "vector.h"
+#include "../qcommon/q_shared.h"
 
 typedef enum _bool { false, true } bool;
 
@@ -13,6 +14,13 @@ struct region {
   // note: bottomleft has the the lower X, lower Y, and lower Z.
   struct position bottomleft, topright;
 };
+
+// Our position types have the same layout, just different types.
+// This'll fix that.
+typedef union {
+    struct position pos;
+    vec3_t vec;
+} pos_vec_conversion_t;
 
 DEFVECTOR(region_map_t, struct region);
 
@@ -75,6 +83,9 @@ void sortedWaypoints(int_vec_t *dest,
 		     const waypoint_vec_t* map,
 		     const region_map_t* regs);
 
+int closestWayPoint(struct position pos,
+                    const waypoint_vec_t* wmap,
+                    const region_map_t* regs);
 
 // from here, return whether we have a path from
 // 'pos' to 'dest'.
