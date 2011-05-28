@@ -256,11 +256,12 @@ usercmd_t  LS_CreateCmd( void ) {
 	}
 	
     // Our forward velocity.  We may change this, depending upon the
-    // destination point, its flags, and our distance from it.  At
-    // least for bots, the forward speed is in [0, 400] ai_main.c:876.
-    const float full_forward_velocity = 127.0;
-    const float slow_forward_velocity = 5.0;
-    float forward_velocity = full_forward_velocity;
+    // destination point, its flags, and our distance from it.    These are
+    // proportions, scaled against our desired acceleration vector.
+    const float full_forward_scale = 1.0;
+    const float slow_forward_scale = 0.2;
+    const float jump_forward_scale = 0.01; // forward speed on a jump platform
+    float forward_scale = full_forward_scale;
 
     //
     // Get our current waypoint.
@@ -283,6 +284,7 @@ usercmd_t  LS_CreateCmd( void ) {
     vec3_t position;
     VectorCopy(cl.snap.ps.origin, position);
 
+    int waypoint_number = 0;
     int waypoint_index = GET(path,0);
     int waypoint_flags = points[waypoint_index].flags;
 
@@ -294,35 +296,63 @@ usercmd_t  LS_CreateCmd( void ) {
     wp1.pos = points[GET(path, 1)].p;
 
     if (waypoint_flags & LPR_SLOWAPPROACH) {
-        forward_velocity = slow_forward_velocity;
+        forward_scale = slow_forward_scale;
     }
 
+    if (waypoint_flags & LPR_JUMP)
+        forward_scale = jump_forward_scale;
+    
     vec3_t next_pos;
     VectorCopy(wp0.vec, next_pos);
 
+    
     // We may be in between waypoints 0 and 1 right now.  If we're
     // closer to waypoint 1 than waypoint 0, make 1 our current
     // destination, and adjust our speed.
     float dist_w0 = Distance(wp0.vec, wp1.vec);
     float dist_w1 = Distance(position, wp1.vec);
     if ( dist_w0 > dist_w1 && !(points[GET(path,1)].flags & LPR_ROUTEONLY)) {
-        waypoint_index = GET(path, 1);
+        waypoint_number++;
+        waypoint_index = GET(path, waypoint_number);
         waypoint_flags = points[waypoint_index].flags;
         VectorCopy(wp1.vec, next_pos);
 
         // interpolate speeds between the proper speeds of the new
         // waypoint.
         float new_wp_speed = waypoint_flags & LPR_SLOWAPPROACH? 
-            slow_forward_velocity : full_forward_velocity;
+            slow_forward_scale : full_forward_scale;
 
-        forward_velocity = new_wp_speed
-            + ((forward_velocity - new_wp_speed) * (dist_w1 / dist_w0));
+        if (waypoint_flags & LPR_JUMP)
+            new_wp_speed = jump_forward_scale;
+
+        forward_scale = new_wp_speed
+            + ((forward_scale - new_wp_speed) * (dist_w1 / dist_w0));
     }
 
-    if (waypoint_flags & LPR_JUMP)
-        cmd.forwardmove = 0;
-    else 
-        cmd.forwardmove = ClampChar(forward_velocity);
+
+    // look how close we are to the current waypoint; if we're approaching
+    // it, slow down by the angle between us, the waypoint, and the next
+    // waypoint.
+    double cur_speed = VectorLength(cl.snap.ps.velocity);
+    vec3_t route;
+    VectorSubtract(wp1.vec, wp0.vec, route);
+    double projected_route = DotProduct(cl.snap.ps.origin, route) / VectorLength(cl.snap.ps.origin);
+    vec3_t velocity;
+    double len_origin = VectorLength(cl.snap.ps.origin);
+    VectorScale(cl.snap.ps.origin, ((len_origin - projected_route)/len_origin), velocity);
+    vec3_t accel;
+    VectorSubtract(velocity, cl.snap.ps.origin, accel);
+
+    // now calculate our acceleration across our current heading.
+    double forward_speed = DotProduct(accel, cl.snap.ps.origin) / VectorLength(cl.snap.ps.origin);
+
+    cmd.forwardmove = ClampChar(127.0 * forward_scale * forward_speed);
+    const double pm_accelerate = 10.0; // from bg_pmove.c:39
+    //
+    // Now compare our desired forward velocity with our current velocity,
+    // and do the delta. The forwardmove is a proportion [-1..1] (scaled to a
+    // granularity of 256) of the full delta-velocity to apply.
+    //    cmd.forwardmove = ClampChar(forward_speed - (cur_speed* 127.0 / pm_accelerate));
 
 	// when I have the direction, use 'vectoangles' to get
 	// it range-converted.  Then pull result[YAW] and give that
@@ -340,21 +370,10 @@ usercmd_t  LS_CreateCmd( void ) {
     // to degrees.
     theta *= 360.0 / (2*M_PI);
 
-    if (dy < 0) {
-        theta = -theta;
-    }
-
-    if (r < 0) {
-        theta += 180.0;
-    }
-
-    if (theta < -180) {
-        theta += 360;
-    }
-
-    if (theta > 180) {
-        theta -= 360;
-    }
+    if (dy < 0) { theta = -theta; }
+    if (r < 0) { theta += 180.0; }
+    if (theta < -180) { theta += 360; }
+    if (theta > 180) { theta -= 360; }
 
     double normalized_dir_yaw = -normalize_dir(direction[YAW]);
 
@@ -365,7 +384,7 @@ usercmd_t  LS_CreateCmd( void ) {
     if (print_counter % 64 == 0) {
         int closest_point = closestWayPoint(here.pos, &s_wmap, &s_regs);
 
-        Com_Printf("We are at: (%6.2f, %6.2f, %6.2f)\n",
+        Com_Printf("\nWe are at: (%6.2f, %6.2f, %6.2f)\n",
                    here.pos.x, here.pos.y, here.pos.z);
         Com_Printf("Path is (from %s, idx %d): ", point_desc(closest_point), waypoint_index);
         int i;
@@ -376,7 +395,8 @@ usercmd_t  LS_CreateCmd( void ) {
 
         Com_Printf("Current Theta is %6.2f\n", theta);
         Com_Printf("Current Yaw is %6.2f\n", normalized_dir_yaw);
-        
+        Com_Printf("Forward scale: %6.3f;   Speed: %6.3f\n",
+                   forward_scale, forward_speed);
         Com_Printf("Going %6.2fdeg for (%6.2f,%6.2f,%6.2f)->(%6.2f,%6.2f,%6.2f)\n", 
                    (double) cmd.rightmove,
                    here.pos.x, here.pos.y, here.pos.z,
