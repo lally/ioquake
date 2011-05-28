@@ -79,11 +79,13 @@ struct region regions[] = {
   // mid platform (M)
   { {-710, -1200, 305}, {710, 1200, 405} },
 
+  // Note: these two differ across the __Y__ axis.
+
   // left upper platform (L)
-  { {-600, -1100, 590}, {500, -400, 650} },
+  { {-1500, -1300, 590}, {500, -400, 650} },
 
   // right upper platform (R)
-  { {-600, 550, 590}, {500, 1300, 650} }
+  { {-1500, 400, 590}, {500, 1300, 650} }
 };
 
 /* NOTES 
@@ -100,69 +102,89 @@ struct waypoint_init points[] = {
   /*
     Nibbles
   
-    | Name     | Location               | Bitmap 1   | B0       |          | Bitmap 0 (B3   |             | B2       |          | B1          |          | B0       |           |
-    |----------+------------------------+------------+----------+----------+----------------+-------------+----------+----------+-------------+----------+----------+-----------|
-    | -------- | ---------------------- | Nibble 2   | Nibble 1 | Nibble 0 | Nibble 7       | Nibble 6    | Nibble 5 | Nibble 4 | Nibble 3    | Nibble 2 | Nibble 1 | Nibble 0  |
-    |          |                        | B-6', B-1' | B ihgf   | Be,d,c,b | Ba, Ws2,s1,Wr2 | Ws1,G2,1,F3 | F21,e,D5 | D4,3,2,1 | B2-2,1,C6,5 | C4,3,2,1 | B6,5,4,3 | B2,1,A2,1 |
+  | Name     | Location               | Bitmap 1 (B1) |                    | B0       |          | Bitmap 0 (B3)  |             | B2       |          | B1          |          | B0       |           |
+  |----------+------------------------+---------------+--------------------+----------+----------+----------------+-------------+----------+----------+-------------+----------+----------+-----------|
+  | -------- | ---------------------- | Nibble 3      | Nibble 2           | Nibble 1 | Nibble 0 | Nibble 7       | Nibble 6    | Nibble 5 | Nibble 4 | Nibble 3    | Nibble 2 | Nibble 1 | Nibble 0  |
+  |          |                        | B-i',B-h'     | B-g',f',B-6', B-1' | B ihgf   | Be,d,c,b | Ba, Ws2,s1,Wr2 | Ws1,G2,1,F3 | F21,e,D5 | D4,3,2,1 | B2-2,1,C6,5 | C4,3,2,1 | B6,5,4,3 | B2,1,A2,1 |
   
-                                          B210,  B76543210..
-  ****************************************************|*****/  
-  { "A-1",      {122,   61,     1330},  {0x000, 0x00000002}},
-  { "A-2",      {220,   59,     1330},  {0x000, 0x00040001}},
-  /*..............................................|...|...*/
-  { "B-1",      {190,   -900,   378},   {0x000, 0x00040000}},
-  { "B-2",      {-381,  -792,   626},   {0x000, 0x20004010}},
-  { "B-3",      {-388,  -425,   626},   {0x000, 0x00000040}},
-  { "B-4",      {-388,  550,    626},   {0x000, 0x00000008}},
-  { "B-5",      {-388,  918,    626},   {0x000, 0x40008020}},
-  { "B-6",      {150,   1052,   378},   {0x000, 0x00040000}},
-  /*..............................................|...|...*/
-  { "C-1",      {161,   -921,   626},   {0x000, 0x00014000}},
-  { "C-2",      {40,    -673,   378},   {0x000, 0x00004000}},
-  { "C-3",      {189,   -501,   378},   {0x018, 0x00030000}},
-  { "C-4",      {194,   526,    378},   {0x022, 0x00181000}},
-  { "C-5",      {40,    800,    378},   {0x000, 0x00008000}},
-  { "C-6",      {139,   1073,   626},   {0x000, 0x00100000}},
-  /*..............................................|...|...*/
-  { "B2-1",     {-55,   -771,   626},   {0x000, 0x20000108}},
-  { "B2-2",     {-60,   925,    626},   {0x000, 0x40002040}},
-  /*..............................................|...|...*/
-  { "D-1",      {342,   -936,   378},   {0x100, 0x001e0600}},
-  { "D-2",      {193,   -390,   378},   {0x100, 0x001d0600}},
-  { "D-3",      {705,   64,     374},   {0x000, 0x003b0000}},
-  { "D-4",      {202,   517,    378},   {0x200, 0x00171800}},
-  { "D-5",      {378,   1023,   378},   {0x200, 0x000f1800}},
-  /*..............................................|...|...*/
-  { "E",        {1100,  58,     50},    {0x004, 0x00800000}},
-  /*..............................................|...|...*/
-  { "F-1",      {2480,  -205,   306},   {0x000, 0x02020000}},
-  { "F-2",      {2399,  67,     306},   {0x000, 0x06000000}},
-  { "F-3",      {2480,  329,    306},   {0x000, 0x04080000}},
-  /*..............................................|...|...*/
-  { "G-1",      {2516,  -100,   306},   {0x000, 0x04c00000}},
-  { "G-2",      {2527,  232,    306},   {0x000, 0x03800000}},
-  /*..............................................|...|...*/
-  { "W-r1",     {297,   -542,   378},   {0x000, 0x00034404}},
-  { "W-r2",     {304,   679,    378},   {0x000, 0x00181080}},
-  { "W-s1",     {-578,  -1096,  626},   {0x000, 0x00004100}},
-  { "W-s2",     {-570,  1221,   626},   {0x000, 0x0000a000}},
-  /*..............................................|...|...*/
-  { "B-a",      { -65,  -201,   50},    {0x039, 0x00000000}},
-  { "B-b",      { -42,  320,    50},    {0x062, 0x80000000}},
-  { "B-c",      { 450,  331,    50},    {0x0cd, 0x00000000}},
-  { "B-d",      { 558,  63,     50},    {0x08a, 0x00200000}},
-  { "B-e",      { 402,  -185,   50},    {0x096, 0x80000000}},
-  { "B-f",      {187,   -100,   63},    {0x008, 0x80000000}},
-  { "B-g",      {0,     62,     59},    {0x001, 0x80000000}},
-  { "B-h",      { 180,  275,    63},    {0x003, 0x00000000}},
-  { "B-i",      {375,   70,     63},    {0x00e, 0x00000000}},
-  /*..............................................|...|...*/
-  { "B-1'",     { 170, -877,   378},    {0x000, 0x00000004}},
-  { "B-6'",     { 165, 1004,   378},    {0x000, 0x00000008}}
+                                                                         B210,  B76543210..
+  ************************************************************************************|*****/  
+  { "A-1",                                 0,  {122,   61,     1330},  {0x000, 0x00000002}},
+  { "A-2",                     LPR_ROUTEONLY,  {220,   59,     1330},  {0x000, 0x00040000}},
+  /*..............................................................................|...|...*/
+  { "B-1",          LPR_JUMP | LPR_ROUTEONLY,  {190,   -900,   378},   {0x000, 0x00040000}},
+  { "B-2",                                 0,  {-381,  -792,   626},   {0x000, 0x20004010}},
+  { "B-3",          LPR_JUMP | LPR_ROUTEONLY,  {-388,  -425,   626},   {0x000, 0x00000040}},
+  { "B-4",          LPR_JUMP | LPR_ROUTEONLY,  {-388,  550,    626},   {0x000, 0x00000008}},
+  { "B-5",                                 0,  {-388,  918,    626},   {0x000, 0x40008020}},
+  { "B-6",          LPR_JUMP | LPR_ROUTEONLY,  {150,   1052,   378},   {0x000, 0x00040000}},
+  /*..............................................................................|...|...*/
+  { "C-1",                                 0,  {161,   -921,   626},   {0x000, 0x00014000}},
+  { "C-2",          LPR_JUMP | LPR_ROUTEONLY,  {40,    -673,   378},   {0x000, 0x00004000}},
+  { "C-3",                                 0,  {189,   -501,   378},   {0x018, 0x00030000}},
+  { "C-4",                                 0,  {194,   526,    378},   {0x022, 0x00181000}},
+  { "C-5",          LPR_JUMP | LPR_ROUTEONLY,  {40,    800,    378},   {0x000, 0x00008000}},
+  { "C-6",                                 0,  {139,   1073,   626},   {0x000, 0x00100000}},
+  /*..............................................................................|...|...*/
+  { "B2-1",                                0,  {-55,   -771,   626},   {0x000, 0x20000108}},
+  { "B2-2",                                0,  {-60,   925,    626},   {0x000, 0x40002040}},
+  /*..............................................................................|...|...*/
+  { "D-1",                                 0,  {342,   -936,   378},   {0x100, 0x001e0600}},
+  { "D-2",                  LPR_SLOWAPPROACH,  {193,   -390,   378},   {0x100, 0x001d0600}},
+  { "D-3",                                 0,  {705,   64,     374},   {0x000, 0x003b0000}},
+  { "D-4",                  LPR_SLOWAPPROACH,  {202,   517,    378},   {0x200, 0x00171800}},
+  { "D-5",                                 0,  {378,   1023,   378},   {0x200, 0x000f1800}},
+  /*..............................................................................|...|...*/
+  { "E",                       LPR_ROUTEONLY,  {1100,  58,     50},    {0x004, 0x00800000}},
+  /*..............................................................................|...|...*/
+  { "F-1",          LPR_JUMP | LPR_ROUTEONLY,  {2480,  -205,   306},   {0x000, 0x02020000}},
+  { "F-2",                                 0,  {2399,  67,     306},   {0x000, 0x06000000}},
+  { "F-3",          LPR_JUMP | LPR_ROUTEONLY,  {2480,  329,    306},   {0x000, 0x04080000}},
+  /*..............................................................................|...|...*/
+  { "G-1",                  LPR_SLOWAPPROACH,  {2516,  -100,   306},   {0x000, 0x04c00000}},
+  { "G-2",                  LPR_SLOWAPPROACH,  {2527,  232,    306},   {0x000, 0x03800000}},
+  /*..............................................................................|...|...*/
+  { "W-r1",                                0,  {297,   -542,   378},   {0x000, 0x00034404}},
+  { "W-r2",                                0,  {304,   679,    378},   {0x000, 0x00181080}},
+  { "W-s1",                                0,  {-578,  -1096,  626},   {0x000, 0x00004100}},
+  { "W-s2",                                0,  {-570,  1221,   626},   {0x000, 0x0000a000}},
+  /*..............................................................................|...|...*/
+  { "B-a",                                 0,  { -65,  -201,   50},   {0x0c09, 0x00000000}}, 
+  { "B-b",                                 0,  { -42,  320,    50},   {0x1802, 0x80000000}},
+  { "B-c",                                 0,  { 450,  331,    50},   {0x300d, 0x00000000}},
+  { "B-d",                                 0,  { 558,  63,     50},   {0x200a, 0x00200000}}, // -> e
+  { "B-e",                                 0,  { 402,  -185,   50},   {0x2406, 0x80000000}},
+  { "B-f",          LPR_JUMP | LPR_ROUTEONLY,  {187,   -100,   63},   {0x0000, 0x00000400}},
+  { "B-g",          LPR_JUMP | LPR_ROUTEONLY,  {0,     62,     59},   {0x0000, 0x00000001}},
+  { "B-h",          LPR_JUMP | LPR_ROUTEONLY,  { 180,  275,    63},   {0x0003, 0x00000800}},
+  { "B-i",          LPR_JUMP | LPR_ROUTEONLY,  {375,   70,     63},   {0x000e, 0x00040000}},
+  /*..............................................................................|...|...*/
+  { "B-1'",                    LPR_ROUTEONLY,  { 170, -877,   378},   {0x0000, 0x00000004}},
+  { "B-6'",                    LPR_ROUTEONLY,  { 165, 1004,   378},   {0x0000, 0x00000080}},
+  { "B-f'",                 LPR_SLOWAPPROACH,  { 198, -149,    61},   {0x0062, 0x80000000}},
+  { "B-g'",                 LPR_SLOWAPPROACH,  { 450,  331,    50},   {0x00cd, 0x00000000}},
+  { "B-h'",                 LPR_SLOWAPPROACH,  { 558,  63,     50},   {0x008a, 0x00200000}},
+  { "B-i'",                 LPR_SLOWAPPROACH,  { 402,  -185,   50},   {0x0096, 0x80000000}},
 };
 
 #define NR_POINTS (sizeof (points) / sizeof (points[0]))
 
+
+static char * point_desc(int point) {
+    static char buf[128];
+
+    if (point < 0 || point >= NR_POINTS) {
+        strcpy(buf, "<not found>");
+        return buf;
+    }
+    strcpy(buf, points[point].comment);
+    
+    if (GET(s_wmap, point).flags & LPR_ROUTEONLY) {
+        strcat(buf, " (rt/o)");
+    }
+        
+    return buf;
+}
 
 
 static void LS_InitPathFinder() {
@@ -175,6 +197,26 @@ static void LS_InitPathFinder() {
   }
 
   makeWaypointTable(&s_wmap, &s_regs, NR_POINTS, points);
+}
+
+static int print_counter = 0;
+
+static double sqr(double d) {
+    return d*d;
+}
+
+static double normalize_dir(double theta) {
+
+    while (theta < -180) {
+        theta += 360;
+    }
+
+    while (theta > 180) {
+        theta -= 360;
+    }
+
+    return theta;
+
 }
 
 usercmd_t  LS_CreateCmd( void ) {
@@ -208,8 +250,6 @@ usercmd_t  LS_CreateCmd( void ) {
 /*{ cl.viewangles[0], cl.viewangles[1], 
                              cl.viewangles[2] };*/
 
-    Com_Printf("We are at: (%6.2f, %6.2f, %6.2f)\n",
-               here.x, here.y, here.z);
 
     /* NOTE: Behavioral code goes here. */
 
@@ -226,13 +266,8 @@ usercmd_t  LS_CreateCmd( void ) {
 					
 	// at least for bots, the forward speed is in [0, 400]
 	// ai_main.c:876.
-    //	cmd.forwardmove = ClampChar(16);
-    Com_Printf("Path is: ");
-    int i;
-    for (i=0; i<SIZE(path); ++i) {
-        Com_Printf("%s ", points[GET(path, i)].comment);
-    }
-    Com_Printf("\n");
+    cmd.forwardmove = ClampChar(28);
+
 	// Select the next waypoint and point to it.  We may actually
 	// be on the first waypoint right now, so skip if we're already very
 	// close to it.
@@ -256,7 +291,7 @@ usercmd_t  LS_CreateCmd( void ) {
         // quietly ignore the Z elements of our destination.
         next_pos[2] = dest[2]; // points[GET(path, next_index)].p.z;
     }
-	while (Distance(cl.viewangles, next_pos) < 25.0
+	while (Distance(cl.snap.ps.origin, next_pos) < 100.0
 	       && next_index < SIZE(path));
 
 	if (next_index == SIZE(path)) {
@@ -267,16 +302,101 @@ usercmd_t  LS_CreateCmd( void ) {
         // quietly ignore the Z elements of our destination.
         next_pos[2] = dest[2]; // points[GET(path, next_index)].p.z;
 	}
+    else {
+        // make sure we're not closer to any other points.
+        double best_dist = Distance(cl.snap.ps.origin, next_pos);
+        vec3_t tmp;
+        int nni;
+        int best_so_far = next_index;
+        for (nni = next_index; nni < SIZE(path); ++nni) {
+            tmp[0] = points[GET(path, nni)].p.x;
+            tmp[0] = points[GET(path, nni)].p.x;
+            tmp[2] = dest[2];
 
-	// whenI have the direction, use 'vectoangles' to get
+            double cur_dist = Distance(cl.snap.ps.origin, tmp);
+            if (cur_dist < best_dist) {
+                best_so_far = nni;
+                VectorCopy(tmp, next_pos);
+                best_dist = cur_dist;
+            }
+            
+        }
+
+    }
+
+	// when I have the direction, use 'vectoangles' to get
 	// it range-converted.  Then pull result[YAW] and give that
 	// to ClampChar().
 	vec3_t move_result;
 	vec3_t direction;
-	VectorSubtract(next_pos, cl.viewangles, move_result);
+	VectorSubtract(next_pos, cl.snap.ps.origin, move_result);
 	vectoangles(move_result, direction);
-	cmd.rightmove = ClampChar(direction[YAW]);
+
+    double dy = next_pos[1] - here.y;
+    double r = sqrt(sqr(next_pos[1] - here.y) + sqr(next_pos[0] - here.x));
+
+    double theta = asin(fabs(dy)/fabs(r));
+
+    // to degrees.
+    theta *= 360.0 / (2*M_PI);
+
+    if (dy < 0) {
+        theta = -theta;
+    }
+
+    if (r < 0) {
+        theta += 180.0;
+    }
+
+    if (theta < -180) {
+        theta += 360;
+    }
+
+    if (theta > 180) {
+        theta -= 360;
+    }
+
+    double normalized_dir_yaw = -normalize_dir(direction[YAW]);
+
+    double desired_final_dir = theta - normalized_dir_yaw;
+
+    // simple sign-based steering.
+    /*    if (fabs(desired_final_dir) > 10.0) {
+        if (desired_final_dir > 0) {
+            cmd.rightmove = -32;
+        }
+        else {
+            cmd.rightmove = 32;
+        }
+    } else {
+        cmd.rightmove = 0;
+        }*/
+    //    cmd.rightmove = ClampChar(desired_final_dir); // direction[YAW]);
+    cmd.rightmove = ClampChar(normalized_dir_yaw);
+    
 	
+    if (print_counter % 64 == 0) {
+        int closest_point = closestWayPoint(here, &s_wmap, &s_regs);
+
+        Com_Printf("We are at: (%6.2f, %6.2f, %6.2f)\n",
+                   here.x, here.y, here.z);
+        Com_Printf("Path is (from %s, idx %d): ", point_desc(closest_point), next_index);
+        int i;
+        for (i=0; i<SIZE(path); ++i) {
+            Com_Printf("%s ", points[GET(path, i)].comment);
+        }
+        Com_Printf("\n");
+
+        Com_Printf("Current Theta is %6.2f\n", theta);
+        Com_Printf("Current Yaw is %6.2f\n", normalized_dir_yaw);
+        
+        Com_Printf("Going %6.2fdeg for (%6.2f,%6.2f,%6.2f)->(%6.2f,%6.2f,%6.2f)\n", 
+                   (double) cmd.rightmove,
+                   here.x, here.y, here.z,
+                   next_pos[0], next_pos[1], next_pos[2]);
+    }
+
+    print_counter++;
 
 	// get basic movement from mouse
 	//	CL_MouseMove( &cmd );
@@ -1052,7 +1172,7 @@ int entity_comparator(const void *pleft, const void *pright) {
   return left < right;
   }*/
 
-static double sqr (double x) { return x * x; }
+//static double sqr (double x) { return x * x; }
 static double min (double a, double b) { return a<b?a:b; }
 
 void ls_trace(bsp_trace_t               *bsptrace,

@@ -28,10 +28,27 @@ double distance(struct position a,
 #define INT_BITS (32)
 #define CHAR_BITS (8)
 
+//
+// Waypoint flags
+//
+
+// Don't match this for searching for a point.  It's only to be used
+// for routing.
+#define LPR_ROUTEONLY (1)
+
+// Slow down when approaching this point.
+#define LPR_SLOWAPPROACH (2)
+
+
+// It's a jump-platform, don't add forward motion
+#define LPR_JUMP (3)
+
+
 typedef int bitmap_t;
 
 struct waypoint {
   struct position pos;
+  int flags;
   double distances[MAX_WAYPOINTS];
   // use INFINITY for unreachable positions.
 };
@@ -42,6 +59,7 @@ DEFVECTOR(int_vec_t, int);
 
 struct waypoint_init {
   const char *comment;
+  int flags;
   struct position p;
   bitmap_t reachable_bitmap[2]; //MAX_WAYPOINTS / (CHAR_BITS * sizeof(bitmap_t))];
 };
