@@ -481,7 +481,11 @@ usercmd_t  LS_CreateCmd( void ) {
     // from CL_FinishMove:
     cmd.weapon = cl.cgameUserCmdValue;
     cmd.serverTime = cl.serverTime;
-    cmd.buttons = 0x801;
+    if (print_counter & 1) {
+        cmd.buttons = 0x801;
+    } else {
+        cmd.buttons = 0;
+    }
 	return cmd;	
 }
 
