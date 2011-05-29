@@ -264,7 +264,7 @@ behavior_t next_behavior () {
         if ( (((double) s_behavior_map[i].count) / counter) 
              < s_behavior_map[i].proportion) {
             s_behavior_map[i].count++;
-            return s_behavior_map[i].type;
+            return s_behavior_map[i];
         }
     }
 }
