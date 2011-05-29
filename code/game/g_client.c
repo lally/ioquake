@@ -1180,11 +1180,13 @@ void ClientSpawn(gentity_t *ent) {
 
 	client->ps.clientNum = index;
 
-	client->ps.stats[STAT_WEAPONS] = ( 1 << WP_MACHINEGUN );
+    // LSMOD: Give everyone a rocket launcher, with lots and lots of
+    // rockets.
+	client->ps.stats[STAT_WEAPONS] = ( 1 << WP_ROCKET_LAUNCHER );
 	if ( g_gametype.integer == GT_TEAM ) {
-		client->ps.ammo[WP_MACHINEGUN] = 50;
+		client->ps.ammo[WP_MACHINEGUN] = 16384;
 	} else {
-		client->ps.ammo[WP_MACHINEGUN] = 100;
+		client->ps.ammo[WP_MACHINEGUN] = 16384;
 	}
 
 	client->ps.stats[STAT_WEAPONS] |= ( 1 << WP_GAUNTLET );
