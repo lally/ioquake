@@ -585,6 +585,10 @@ usercmd_t CL_CreateCmd( void ) {
 		}
 	}
 
+    Com_Printf("cmd: angles(%d,%d,%d), f-%d, r-%d, u-%d\n",
+               cmd.angles[0], cmd.angles[1], cmd.angles[2],
+               cmd.forwardmove, cmd.rightmove, cmd.upmove);
+
 	return cmd;
 }
 

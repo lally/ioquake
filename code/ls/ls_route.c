@@ -498,6 +498,8 @@ static double pathFindWork(int_vec_t *destpath,
                 lowest_idx = GET(wpoints,i);
                 COPY(*destpath, tmp);
                 END_DEPTH;
+                // with this return, it's an A* search.  without, it's
+                // a DFS.
                 return val;
             } 
 
