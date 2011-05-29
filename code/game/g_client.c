@@ -1037,7 +1037,8 @@ void ClientBegin( int clientNum ) {
 			trap_SendServerCommand( -1, va("print \"%s" S_COLOR_WHITE " entered the game\n\"", client->pers.netname) );
 		}
 	}
-	G_LogPrintf( "ClientBegin: %i\n", clientNum );
+    
+	G_LogPrintf( "ClientBegin: %i; weapon = %d\n", clientNum, client->ps.weapon );
 
 	// count current clients and rank for scoreboard
 	CalculateRanks();
@@ -1180,13 +1181,15 @@ void ClientSpawn(gentity_t *ent) {
 
 	client->ps.clientNum = index;
 
+    G_LogPrintf("LS: Using modified Weapon setup.\n");
+
     // LSMOD: Give everyone a rocket launcher, with lots and lots of
     // rockets.
 	client->ps.stats[STAT_WEAPONS] = ( 1 << WP_ROCKET_LAUNCHER );
 	if ( g_gametype.integer == GT_TEAM ) {
-		client->ps.ammo[WP_MACHINEGUN] = 16384;
+		client->ps.ammo[WP_ROCKET_LAUNCHER] = 16384;
 	} else {
-		client->ps.ammo[WP_MACHINEGUN] = 16384;
+		client->ps.ammo[WP_ROCKET_LAUNCHER] = 16384;
 	}
 
 	client->ps.stats[STAT_WEAPONS] |= ( 1 << WP_GAUNTLET );
@@ -1212,7 +1215,8 @@ void ClientSpawn(gentity_t *ent) {
 		trap_LinkEntity (ent);
 
 		// force the base weapon up
-		client->ps.weapon = WP_MACHINEGUN;
+        //		client->ps.weapon = WP_MACHINEGUN;
+        client->ps.weapon = WP_ROCKET_LAUNCHER;
 		client->ps.weaponstate = WEAPON_READY;
 
 	}
@@ -1245,6 +1249,12 @@ void ClientSpawn(gentity_t *ent) {
 			}
 		}
 	}
+
+
+    // LSMOD - force it on.
+        client->ps.weapon = WP_ROCKET_LAUNCHER;
+		client->ps.weaponstate = WEAPON_READY;
+
 
 	// run a client frame to drop exactly to the floor,
 	// initialize animations and other things
