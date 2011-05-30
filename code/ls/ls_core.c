@@ -15,9 +15,10 @@ static botlib_export_t *s_botlib;
 static clientActive_t  *s_cl;
 static clientStatic_t  *s_cls;
 
-static int s_lastpath_time = 0;
+/*static int s_lastpath_time = 0;
 static int_vec_t s_path;
 static int s_waypoint_number = 0;
+*/
 
 //static unsigned s_frame_msec;
 //static int              s_old_com_frameTime;
@@ -237,8 +238,8 @@ typedef enum behavior_type_e {
 // each behavior will have more data, but this at the front.
 typedef struct behavior_s {
     behavior_type_t type;
-    int count;
     float proportion;
+    int count;
 } behavior_t;
 
 
@@ -255,22 +256,351 @@ static int s_behavior_counter;
 //
 // Behavior Decision Engine
 //
+static int s_last_behavior_time =0;
+static behavior_t s_behavior;
+static behavior_type_t s_last_behavior;
 behavior_t next_behavior () {
     // find most underrepresented behavior and return it.
     int i;
     double counter = s_behavior_counter;
-    s_behavior_counter++;
-    for (i=0; i < PB_LAST_VALUE; ++i) {
-        if ( (((double) s_behavior_map[i].count) / counter) 
-             < s_behavior_map[i].proportion) {
-            s_behavior_map[i].count++;
-            return s_behavior_map[i];
+    if (!s_last_behavior_time ||s_last_behavior_time + 1500 < cl.serverTime) {
+        s_last_behavior_time = cl.serverTime;
+        s_behavior_counter++;
+        int chosen = 0;
+        double min_representation = 1.0;
+
+        for (i=0; i < PB_LAST_VALUE; ++i) {
+            double representation = (s_behavior_map[chosen].count / counter);
+            if (representation < min_representation) {
+                min_representation = representation;
+                chosen = i;
+            }
+            if (counter * s_behavior_map[i].proportion > s_behavior_map[i].count) {
+                s_behavior_map[i].count++;
+                chosen = i;
+                break;
+            }
         }
+        s_behavior_map[chosen].count++;
+        Com_Printf("next_behavior(%d): returning %d (at %f, prop %f, count %d, desired %f).  Other counts: ", 
+                   (int) counter,
+                   chosen, 
+                   (s_behavior_map[chosen].count / counter),
+                   s_behavior_map[chosen].proportion,
+                   s_behavior_map[chosen].count,
+                   (s_behavior_map[chosen].proportion * counter));
+                   
+        for (i=0; i<PB_LAST_VALUE; ++i) {
+            Com_Printf(" %d", s_behavior_map[i].count);
+        }
+        Com_Printf("\n");
+        return s_behavior_map[chosen];
+    } else {
+        return s_behavior_map[s_last_behavior];
     }
 }
 
+static int region_of(vec3_t pos) {
+    int i;
+    for (i=0; i<6; ++i) {
+        if (pos[0] >= regions[i].bottomleft.x
+            && pos[1] >= regions[i].bottomleft.y
+            && pos[2] >= regions[i].bottomleft.z
+            && pos[0] <= regions[i].topright.x
+            && pos[1] <= regions[i].topright.y
+            && pos[2] <= regions[i].topright.z)
+            return i;
+    }
+    return -1;
+}
 
-usercmd_t  LS_CreateCmd( void ) {
+static int s_cmd_counter = 0;
+static int_vec_t s_path;
+static int s_waypoint_number = 0;
+static int entMod(int k) {
+    while (k < 0)
+        k += MAX_PARSE_ENTITIES-1;
+    
+    k = k % (MAX_PARSE_ENTITIES -1);
+    return k;
+}
+
+static int isHealth(int item_index) {
+    return item_index >= 4 && item_index <= 6;
+}
+
+usercmd_t LS_CreateCmd(void) {
+	usercmd_t cmd;
+	vec3_t		oldAngles;
+	extern void CL_AdjustAngles(void);
+	extern void CL_FinishMove( usercmd_t *cmd );
+
+    qboolean fire;
+    fire = qfalse;
+    
+	if (!ls_initialized) {
+        Com_Printf("LS: Initializing.\n");
+        LS_InitPathFinder();
+        INIT(s_path);
+	}
+
+	VectorCopy( cl.viewangles, oldAngles );
+	// keyboard angle adjustment
+	CL_AdjustAngles ();
+	Com_Memset( &cmd, 0, sizeof( cmd ) );
+
+    pos_vec_conversion_t here;
+    VectorCopy(cl.snap.ps.origin, here.vec);
+    const float full_forward_scale = 1.0;
+    const float slow_forward_scale = 0.2;
+    const float jump_forward_scale = 0.1; // forward speed on a jump platform
+
+    double forward_scale = full_forward_scale;
+
+    //
+    // STATE MACHINE IMPLEMENTATION
+    //
+
+    s_behavior = next_behavior();
+
+    pos_vec_conversion_t destination;
+    // Next, determine the state of the behavior.
+    if (s_last_behavior != s_behavior.type) {
+        // we're in INIT.
+        int i;
+        double last_distance = 5000.0;
+        int    last_found_index = -1; 
+        switch (s_behavior.type) {
+        case PB_CHASE: {
+            // target is the closest player
+            for (i=0; i<cl.snap.numEntities; ++i) {
+                int idx = entMod(cl.parseEntitiesNum-i);
+                if (cl.parseEntities[idx].number 
+                    && cl.parseEntities[idx].eType == ET_PLAYER) {
+                    double dist = Distance(here.vec, cl.parseEntities[idx].origin);
+                    if (dist < last_distance) {
+                        last_distance = dist;
+                        last_found_index = idx;
+                    }
+                }
+            }
+            if (last_found_index == -1) {
+                VectorCopy(here.vec, destination.vec);
+            } else {
+                VectorCopy(cl.parseEntities[last_found_index].origin, destination.vec);
+            }
+        } break;
+
+        default: {
+            Com_Printf("LS: WARN: Invalid behavior type!\n");
+            // fall through
+        }
+        case PB_PLATFORM: {
+            // target is the most-populous platform, biased with a random
+            // factor (for entropy).
+            int region_counts[] = { 0, 0, 0, 0, 0, 0 };
+            int region_centers[] = {
+                0, //  Quad-Damage platform, A-1
+                25,  // Railgun, G-2
+                31, // low-jump, B-b
+                10, // mid, C-3
+                3,// left, B-2
+                6 // right, B-5
+            };
+
+            int max_index = random() * 6.0;
+            int max_value = 2;
+            
+            // entropy seed.
+            region_counts[max_index] = max_value;
+
+            for (i=0; i<cl.snap.numEntities; ++i) {
+                int idx = entMod(cl.parseEntitiesNum-i);
+                if (cl.parseEntities[idx].number && cl.parseEntities[idx].eType == ET_PLAYER) {
+                    int reg = region_of(cl.parseEntities[idx].origin);
+                    if (reg != -1) {
+                        if (++region_counts[reg] > max_value) {
+                            max_value = region_counts[reg];
+                            max_index = reg;
+                        }
+                    }
+                }
+            }
+
+            destination.pos = points[region_centers[max_index]].p;
+        } break;
+
+        case PB_HEALTH: {
+            // target is the closest health power up.
+            for (i=0; i<cl.snap.numEntities; ++i) {
+                int idx = entMod(cl.parseEntitiesNum-i);
+                if (cl.parseEntities[idx].number 
+                    && cl.parseEntities[idx].eType == ET_ITEM
+                    && isHealth(cl.parseEntities[idx].modelindex) == IT_HEALTH) {
+                    double dist = Distance(here.vec, cl.parseEntities[idx].origin);
+                    if (dist < last_distance) {
+                        last_distance = dist;
+                        last_found_index = idx;
+                    }
+                }
+            }
+            if (last_found_index == -1) {
+                VectorCopy(here.vec, destination.vec);
+            } else {
+                VectorCopy(cl.parseEntities[last_found_index].origin, destination.vec);
+            }
+        } break;
+
+        case PB_POWERUP: {
+            // target is the closest weapon or armor.
+            for (i=0; i<cl.snap.numEntities; ++i) {
+                int idx = entMod(cl.parseEntitiesNum-i);
+                if (cl.parseEntities[idx].number 
+                    && cl.parseEntities[idx].eType == ET_ITEM
+                    && isHealth(cl.parseEntities[idx].modelindex) == IT_POWERUP) {
+                    double dist = Distance(here.vec, cl.parseEntities[idx].origin);
+                    if (dist < last_distance) {
+                        last_distance = dist;
+                        last_found_index = idx;
+                    }
+                }
+            }
+            if (last_found_index == -1) {
+                VectorCopy(here.vec, destination.vec);
+            } else {
+                VectorCopy(cl.parseEntities[last_found_index].origin, destination.vec);
+            }
+        } break;
+        }
+
+        // We have a destination.  Plot the route.
+        pathFind(&s_path, here.pos, destination.pos, &s_wmap, &s_regs);
+        s_waypoint_number = 0;
+    }
+    else {
+        int i;
+        double last_distance = 5000;
+        int last_found_index = -1;
+        if (s_behavior.type == PB_CHASE
+            || (s_behavior.type == PB_PLATFORM &&
+                region_of(here.vec) == region_of(destination.vec))) {
+            // for PB_CHASE or POST-PB_PLATFORM, just point at them and leave
+            // it at that.
+            for (i=0; i<cl.snap.numEntities; ++i) {
+                int idx = entMod(cl.parseEntitiesNum-i);
+                if (cl.parseEntities[idx].number 
+                    && cl.parseEntities[idx].eType == ET_PLAYER) {
+                    double dist = Distance(here.vec, cl.parseEntities[idx].origin);
+                    if (dist < last_distance) {
+                        last_distance = dist;
+                        last_found_index = idx;
+                    }
+                }
+            }
+            if (last_found_index == -1) {
+                cmd.buttons = 0;
+                // nobody, just stand still
+                destination.pos = here.pos;
+            } else {
+                // toggle firing whenever we have someone.
+                if (s_cmd_counter & 1) 
+                    cmd.buttons |= 0x801;
+                VectorCopy(cl.parseEntities[last_found_index].origin, destination.vec);
+            }
+        } else {
+            // everyone else is pathfinding.
+            int waypoint_index = GET(s_path,s_waypoint_number);
+            int waypoint_flags = points[waypoint_index].flags;
+
+            // We may be closer to a further-on waypoint than our current one.
+            // >> How does this interact with the 'route-only' flag?  We won't
+            // >> skip the old waypoint if the new one is route-only.
+            pos_vec_conversion_t wp0, wp1;
+            wp0.pos = points[waypoint_index].p;
+            if (s_waypoint_number+1 < SIZE(s_path))
+                wp1.pos = points[GET(s_path, s_waypoint_number+1)].p;
+            else
+                wp1.pos = wp0.pos;
+
+            if (waypoint_flags & LPR_SLOWAPPROACH) {
+                forward_scale = slow_forward_scale;
+            }
+
+            if (waypoint_flags & LPR_JUMP)
+                forward_scale = jump_forward_scale;
+    
+            // We may be in between waypoint offsets 0 and 1 right now.  If we're
+            // closer to waypoint offset 1 than 0, make 1 our current destination,
+            // and adjust our speed.
+            float dist_w0 = Distance(wp0.vec, wp1.vec);
+            float dist_w1 = Distance(here.vec, wp1.vec);
+            while ( s_waypoint_number+1 < SIZE(s_path) && dist_w0 > dist_w1) {
+                s_waypoint_number++;
+                waypoint_index = GET(s_path, s_waypoint_number);
+                waypoint_flags = points[waypoint_index].flags;
+                VectorCopy(wp1.vec, destination.vec);
+                /*
+                Com_Printf("LS: Moving along, we're closer to our next "
+                           "waypoint(%s: %f) than current\n",
+                           points[waypoint_index].comment, dist_w1);*/
+                wp0.pos = points[waypoint_index].p;
+                if (s_waypoint_number+1 < SIZE(s_path))
+                    wp1.pos = points[GET(s_path, s_waypoint_number+1)].p;
+                else
+                    wp1.pos = wp0.pos;
+
+                dist_w0 = Distance(wp0.vec, wp1.vec);
+                dist_w1 = Distance(here.vec, wp1.vec);
+
+                // interpolate speeds between the proper speeds of the new
+                // waypoint.
+                float new_wp_speed = waypoint_flags & LPR_SLOWAPPROACH? 
+                    slow_forward_scale : full_forward_scale;
+
+                if (waypoint_flags & LPR_JUMP)
+                    new_wp_speed = jump_forward_scale;
+
+                forward_scale = new_wp_speed
+                    + ((forward_scale - new_wp_speed) * (dist_w1 / dist_w0));
+            }
+        }
+    }
+
+    vec3_t delta, result_angles;
+    VectorSubtract(destination.vec, here.vec, delta);
+    VectorNormalize(delta);
+    vectoangles(delta, result_angles);
+    /*    if (result_angles[0] > 90 ) {
+        result_angles[0] -= 180;
+        result_angles[0] = AngleNormalize360(result_angles[0]);
+        forward_scale *= -1;
+        } */
+    cmd.angles[0] = (result_angles[0]) * (65535/360.0);
+    cmd.angles[1] = (result_angles[1]) * (65535/360.0);
+    cmd.angles[2] = (result_angles[2]) * (65535/360.0);
+    cmd.forwardmove = forward_scale * 127;
+    cmd.rightmove = 0;
+    if (s_cmd_counter % 64 == 0) {
+        const char* modes[] = { "CHASE", "PLATFORM", "HEALTH", "POWERUP", "<last>" };
+        Com_Printf("LS:[%s] cmd angles(%5d,%5d,%2d)\tf-%2d, r-%2d\n",
+                   modes[s_behavior.type],
+                   cmd.angles[0], cmd.angles[1], cmd.angles[2],
+                   cmd.forwardmove, cmd.rightmove);
+    }
+    s_last_behavior = s_behavior.type;
+    cmd.weapon = cl.cgameUserCmdValue;
+    cmd.serverTime = cl.serverTime;
+	if ( cl.viewangles[PITCH] - oldAngles[PITCH] > 90 ) {
+		cl.viewangles[PITCH] = oldAngles[PITCH] + 90;
+	} else if ( oldAngles[PITCH] - cl.viewangles[PITCH] > 90 ) {
+		cl.viewangles[PITCH] = oldAngles[PITCH] - 90;
+	} 
+    s_cmd_counter++;
+    return cmd;
+}
+
+static int s_lastpath_time;
+usercmd_t  LS_FooCreateCmd( void ) {
 	usercmd_t cmd;
 	vec3_t		oldAngles;
 	extern void CL_AdjustAngles(void);
