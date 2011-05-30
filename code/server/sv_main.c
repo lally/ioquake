@@ -106,7 +106,19 @@ void MET_ClientCount (void) {
 
 	log = MET_GlobalFile()->file;
 	if (MET_tv_sub(&svs.last_cnt_xmit, &now) >= 1.0) {
-		fprintf(log, "Client count: %d\n", svs.numSnapshotEntities);
+        int i;
+        int count = 0;
+        for (i=0; i<sv_maxclients->integer; ++i) {
+            switch (clients[i].state) {
+            case CS_CONNECTED:
+            case CS_PRIMED:
+            case CS_ACTIVE:
+                count++;
+            default:
+                break;
+            }
+        }
+		fprintf(log, "Client count: %d\n", count);
 		svs.last_cnt_xmit = now;
 	}
 
