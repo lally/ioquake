@@ -109,7 +109,7 @@ void MET_ClientCount (void) {
         int i;
         int count = 0;
         for (i=0; i<sv_maxclients->integer; ++i) {
-            switch (clients[i].state) {
+            switch (svs.clients[i].state) {
             case CS_CONNECTED:
             case CS_PRIMED:
             case CS_ACTIVE:
