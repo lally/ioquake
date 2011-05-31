@@ -38,6 +38,11 @@ provider quake {
 	probe net__player__start(int, int); /* player #, real?1:0 */
 	probe net__player__end(int nr);
 
+    /* Weapon Probes */
+    probe weapon__fire__start(int, int); /* kind (0=rocket, 1=rail, 2=shotgun), key */
+    probe weapon__fire__end(int, int);   /* same as _start() */
+    probe entity__counts(int, int, int, int); /* players, rockets, rails, pellets */
+
 	/*************************************************************
 	 * NETWORK I/O PROBES
 	 */

@@ -236,4 +236,6 @@ equ trap_Metrics_AI_End 	                    -610
 equ trap_Metrics_Player_Start 	                -611
 equ trap_Metrics_Player_Abort 	                -612
 equ trap_Metrics_Player_End 	                -613
-	
+equ trap_Metrics_Weapon_Fire_Start              -614
+equ trap_Metrics_Weapon_Fire_End                -615
+equ trap_Metrics_Projectile_Counts              -616        

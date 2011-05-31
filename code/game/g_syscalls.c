@@ -837,3 +837,14 @@ void trap_Metrics_AI_End(void) {
 	syscall(METRICS_SIM_AI_END);
 }
 
+void trap_Metrics_Weapon_Fire_Start(int kind, int key) {
+    syscall(METRICS_WEAPON_FIRE_START, kind, key);
+}
+
+void trap_Metrics_Weapon_Fire_End(int kind, int key) {
+    syscall(METRICS_WEAPON_FIRE_END, kind, key);
+}
+
+void trap_Metrics_Projectile_Counts(int players, int rockets, int rails, int pellets) {
+    syscall(METRICS_PROJECTILE_COUNTS, players, rockets, rails, pellets);
+}

@@ -905,6 +905,18 @@ intptr_t SV_GameSystemCalls( intptr_t *args ) {
 		QUAKE_SIM_AI_END();
 		return 0;
 		
+    case METRICS_WEAPON_FIRE_START:
+        QUAKE_WEAPON_FIRE_START(args[0], args[1]);
+        return 0;
+
+    case METRICS_WEAPON_FIRE_END:
+        QUAKE_WEAPON_FIRE_END(args[0], args[1]);
+        return 0;
+
+    case METRICS_PROJECTILE_COUNTS:
+        QUAKE_ENTITY_COUNTS(args[0], args[1], args[2], args[3]);
+        return 0;
+
 	default:
 		Com_Error( ERR_DROP, "LS3: Bad game system trap: %ld.  Maybe you should call %d?", 
                    (long int) args[0], (long int) METRICS_SIM_TOTAL );

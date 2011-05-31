@@ -501,6 +501,7 @@ void Sys_SigHandler( int signal )
 
 static const char *freq_pattern = "CoreLoop: %3.2fms, %d samples\n";
 
+
 /*
 =================
 main
@@ -584,9 +585,9 @@ int main( int argc, char **argv )
 		IN_Frame( ); // (LS) Input processing
 		Com_Frame( ); // (LS) Everything else.
 
-		MET_ClientCount();
-		
 		QUAKE_CORE_LOOP_END();
+
+		MET_ClientCount();
 	}
 
 	return 0;

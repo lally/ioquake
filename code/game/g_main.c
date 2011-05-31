@@ -1729,6 +1729,13 @@ void G_RunFrame( int levelTime ) {
 	int			msec;
 	int start, end;
 	int nr_players;
+    // while we're already going through every entity, go ahead and
+    // count them by type.
+    int players = 0;
+    int rockets = 0;
+    int rails = 0;
+    int pellets = 0;
+	
 
 	// if we are waiting for the level to restart, do nothing
 	if ( level.restarted ) {
@@ -1750,11 +1757,17 @@ void G_RunFrame( int levelTime ) {
 	start = trap_Milliseconds();
 	ent = &g_entities[0];
 	trap_Metrics_SimTotal(level.num_entities);
-	
+
 	for (i=0 ; i<level.num_entities ; i++, ent++) {
 		if ( !ent->inuse ) {
 			continue;
 		}
+
+        if (ent->s.eType == (ET_EVENTS + EV_RAILTRAIL)) {
+            rails++;
+        } else if (ent->s.eType == (ET_EVENTS + EV_SHOTGUN)) {
+            pellets++;
+        }
 
 		// clear events that are too old
 		if ( level.time - ent->eventTime > EVENT_VALID_MSEC ) {
@@ -1791,6 +1804,7 @@ void G_RunFrame( int levelTime ) {
 			trap_Metrics_Projectile_Start();
 			G_RunMissile( ent );
 			trap_Metrics_Projectile_End();
+            rockets++;
 			continue;
 		}
 
@@ -1810,6 +1824,8 @@ void G_RunFrame( int levelTime ) {
 
 		if ( i < MAX_CLIENTS ) {
 			nr_players += G_RunClient( ent );
+            if (ent->s.eType == ET_PLAYER && ent->r.contents == CONTENTS_BODY)
+                players++;
 			continue;
 		}
 
@@ -1854,6 +1870,8 @@ end = trap_Milliseconds();
 		}
 		trap_Cvar_Set("g_listEntity", "0");
 	}
+
+    trap_Metrics_Projectile_Counts(players, rockets, rails, pellets);
 }
 
 

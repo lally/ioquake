@@ -31,6 +31,26 @@ static	vec3_t	muzzle;
 
 #define NUM_NAILSHOTS 15
 
+typedef enum {
+    WF_ROCKET,
+    WF_RAIL,
+    WF_SHOTGUN
+} weapon_fire_t;
+
+void LS_Weapon_Fire_Start(weapon_fire_t weapon, gentity_t* ent) {
+    int n;
+    if (ent) n = ent->s.number;
+    else n = -1;
+    trap_Metrics_Weapon_Fire_Start(weapon, n);
+}
+
+void LS_Weapon_Fire_End(weapon_fire_t weapon, gentity_t* ent) {
+    int n;
+    if (ent) n = ent->s.number;
+    else n = -1;
+    trap_Metrics_Weapon_Fire_End(weapon, n);
+}
+
 /*
 ================
 G_BounceProjectile
@@ -353,6 +373,7 @@ void ShotgunPattern( vec3_t origin, vec3_t origin2, int seed, gentity_t *ent ) {
 void weapon_supershotgun_fire (gentity_t *ent) {
 	gentity_t		*tent;
 
+    LS_Weapon_Fire_Start(WF_SHOTGUN, ent);
 	// send shotgun blast
 	tent = G_TempEntity( muzzle, EV_SHOTGUN );
 	VectorScale( forward, 4096, tent->s.origin2 );
@@ -361,6 +382,7 @@ void weapon_supershotgun_fire (gentity_t *ent) {
 	tent->s.otherEntityNum = ent->s.number;
 
 	ShotgunPattern( tent->s.pos.trBase, tent->s.origin2, tent->s.eventParm, ent );
+    LS_Weapon_Fire_End(WF_SHOTGUN, ent);
 }
 
 
@@ -397,9 +419,11 @@ ROCKET
 void Weapon_RocketLauncher_Fire (gentity_t *ent) {
 	gentity_t	*m;
 
+    LS_Weapon_Fire_Start(WF_ROCKET, ent);
 	m = fire_rocket (ent, muzzle, forward);
 	m->damage *= s_quadFactor;
 	m->splashDamage *= s_quadFactor;
+    LS_Weapon_Fire_End(WF_ROCKET, ent);
 
 //	VectorAdd( m->s.pos.trDelta, ent->client->ps.velocity, m->s.pos.trDelta );	// "real" physics
 }
@@ -452,6 +476,9 @@ void weapon_railgun_fire (gentity_t *ent) {
 	int			unlinked;
 	int			passent;
 	gentity_t	*unlinkedEntities[MAX_RAIL_HITS];
+
+    LS_Weapon_Fire_Start(WF_RAIL, ent);
+
 
 	damage = 100 * s_quadFactor;
 
@@ -557,6 +584,7 @@ void weapon_railgun_fire (gentity_t *ent) {
 		}
 		ent->client->accuracy_hits++;
 	}
+    LS_Weapon_Fire_End(WF_RAIL, ent);
 
 }
 
