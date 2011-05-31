@@ -109,14 +109,16 @@ int MET_ClientCount (void) {
 	if (MET_tv_sub(&svs.last_cnt_xmit, &now) >= 1.0) {
         int i;
         count = 0;
-        for (i=0; i<sv_maxclients->integer; ++i) {
-            switch (svs.clients[i].state) {
-            case CS_CONNECTED:
-            case CS_PRIMED:
-            case CS_ACTIVE:
-                count++;
-            default:
-                break;
+        if (svs.clients) {
+            for (i=0; i<sv_maxclients->integer; ++i) {
+                switch (svs.clients[i].state) {
+                case CS_CONNECTED:
+                case CS_PRIMED:
+                case CS_ACTIVE:
+                    count++;
+                default:
+                    break;
+                }
             }
         }
 		fprintf(log, "Client count: %d\n", count);

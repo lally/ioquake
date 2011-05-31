@@ -864,9 +864,11 @@ intptr_t SV_GameSystemCalls( intptr_t *args ) {
 		QUAKE_CORE_LOOP_END();
 		return 0;
 
-	case METRICS_SIM_PLAYER_START:
+	case METRICS_SIM_PLAYER_START: {
+        //        printf(" Invoking QUAKE_SIM_PLAYER_START\n");
 		QUAKE_SIM_PLAYER_START();
 		return 0;
+    }
 		
 	case METRICS_SIM_PLAYER_ABORT:
 		QUAKE_SIM_PLAYER_ABORT();
@@ -904,7 +906,8 @@ intptr_t SV_GameSystemCalls( intptr_t *args ) {
 		return 0;
 		
 	default:
-		Com_Error( ERR_DROP, "Bad game system trap: %ld", (long int) args[0] );
+		Com_Error( ERR_DROP, "LS3: Bad game system trap: %ld.  Maybe you should call %d?", 
+                   (long int) args[0], (long int) METRICS_SIM_TOTAL );
 	}
 	return -1;
 }

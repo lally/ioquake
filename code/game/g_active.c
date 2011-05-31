@@ -768,6 +768,7 @@ void ClientThink_real( gentity_t *ent ) {
 		return;
 	}
 
+    //    G_Printf("Calling Metrics_Player_Start()\n");
 	trap_Metrics_Player_Start(); 
 	
 	// mark the time, so the connection sprite can be removed

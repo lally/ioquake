@@ -223,18 +223,17 @@ equ trap_BotLibFreeSource				-580
 equ trap_BotLibReadToken				-581
 equ trap_BotLibSourceFileAndLine		-582
  
-equ trap_Metrics_SimTotal                       -583
-equ trap_Metrics_SimPlayers                     -584
-equ trap_Metrics_Coreloop_Start                 -585
-equ trap_Metrics_Coreloop_End                   -586
-equ trap_Metrics_Projectile_Start 	-587
-equ trap_Metrics_Projectile_End   	-588
-equ trap_Metrics_Item_Start 	-589
-equ trap_Metrics_Item_End 	-590
-equ trap_Metrics_AI_Start 	-591
-equ trap_Metrics_AI_End 	-592
-equ trap_Metrics_Player_Start 	-593
-equ trap_Metrics_Player_Abort 	-594
-equ trap_Metrics_Player_End 	-595
-	
+equ trap_Metrics_SimTotal                       -601
+equ trap_Metrics_SimPlayers                     -602
+equ trap_Metrics_Coreloop_Start                 -603
+equ trap_Metrics_Coreloop_End                   -604
+equ trap_Metrics_Projectile_Start 	            -605
+equ trap_Metrics_Projectile_End   	            -606
+equ trap_Metrics_Item_Start 	                -607
+equ trap_Metrics_Item_End 	                    -608
+equ trap_Metrics_AI_Start 	                    -609
+equ trap_Metrics_AI_End 	                    -610
+equ trap_Metrics_Player_Start 	                -611
+equ trap_Metrics_Player_Abort 	                -612
+equ trap_Metrics_Player_End 	                -613
 	

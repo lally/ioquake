@@ -836,3 +836,4 @@ void trap_Metrics_AI_Start(void) {
 void trap_Metrics_AI_End(void) {
 	syscall(METRICS_SIM_AI_END);
 }
+
