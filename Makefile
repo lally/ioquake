@@ -264,14 +264,14 @@ ifeq ($(PLATFORM),linux)
   ifeq ($(ARCH),x86_64)
     OPTIMIZE = -O3 -fomit-frame-pointer -ffast-math -funroll-loops \
       -falign-loops=2 -falign-jumps=2 -falign-functions=2 \
-      -fstrength-reduce
+      -fstrength-reduce -fno-inline-functions
     # experimental x86_64 jit compiler! you need GNU as
     #HAVE_VM_COMPILED = true
   else
   ifeq ($(ARCH),i386)
     OPTIMIZE = -O3 -march=i586 -fomit-frame-pointer -ffast-math \
       -funroll-loops -falign-loops=2 -falign-jumps=2 \
-      -falign-functions=2 -fstrength-reduce
+      -falign-functions=2 -fstrength-reduce -fno-inline-functions
     #HAVE_VM_COMPILED=true
   else
   ifeq ($(ARCH),ppc)
@@ -720,7 +720,7 @@ ifeq ($(PLATFORM),sunos)
   BASE_CFLAGS = -Wall -fno-strict-aliasing -Wimplicit -Wstrict-prototypes \
     -pipe -DUSE_ICON $(shell sdl-config --cflags) -DNO_VM_COMPILED
 
-  OPTIMIZE = -O3 -ffast-math -funroll-loops
+  OPTIMIZE = -O3 -ffast-math -funroll-loops -fno-inline-functions
 
   ifeq ($(ARCH),sparc)
     OPTIMIZE = -O3 -ffast-math \
@@ -731,7 +731,7 @@ ifeq ($(PLATFORM),sunos)
   ifeq ($(ARCH),i386)
     OPTIMIZE = -O3 -march=i586 -fomit-frame-pointer -ffast-math \
       -funroll-loops -falign-loops=2 -falign-jumps=2 \
-      -falign-functions=2 -fstrength-reduce
+      -falign-functions=2 -fstrength-reduce -fno-inline-functions
     HAVE_VM_COMPILED=true
     BASE_CFLAGS += -m32
     BASE_CFLAGS += -I/usr/X11/include/NVIDIA

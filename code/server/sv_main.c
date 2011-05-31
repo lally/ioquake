@@ -686,6 +686,7 @@ void SV_PacketEvent( netadr_t from, msg_t *msg ) {
 SV_CalcPings
 
 Updates the cl->ping variables
+NOTE: try -fno-inline-functions to get dtrace on this to work.
 ===================
 */
 void SV_CalcPings( void ) {

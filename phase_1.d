@@ -98,15 +98,17 @@ pid$1::VM_Call:entry
 /arg1 == 8/
 {
         RunFrame_tmp = vtimestamp;
+        vm_mode = 8;
 }
 
 pid$1::VM_Call:return
-/arg1 == 8/
+/vm_mode == 8/
 {
         RunFrame_tmp = (vtimestamp - RunFrame_tmp);
         @["RunFrame"] = quantize(RunFrame_tmp/1000);
         RunFrame_cnt++;
         RunFrame_ttl += RunFrame_tmp;
+        vm_mode = -1;
 }
 
 pid$1::SV_CheckTimeouts:entry
@@ -125,10 +127,11 @@ pid$1::SV_CheckTimeouts:return
 
 pid$1::SV_SendClientMessages:entry
 {
-        Timeout_tmp = vtimestamp;
+        Send_tmp = vtimestamp;
 }
 
 pid$1::SV_SendClientMessages:return
+/Send_tmp != 0/
 {
         Send_tmp = (vtimestamp - Send_tmp);
         @["Send"] = quantize(Send_tmp/1000);
