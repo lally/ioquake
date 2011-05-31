@@ -98,16 +98,17 @@ char	*SV_ExpandNewlines( char *in ) {
 	return string;
 }
 
-void MET_ClientCount (void) {
+int MET_ClientCount (void) {
 	struct timeval now;
 	FILE * log;
 	
 	gettimeofday(&now, 0);
 
 	log = MET_GlobalFile()->file;
+    int count = -1;
 	if (MET_tv_sub(&svs.last_cnt_xmit, &now) >= 1.0) {
         int i;
-        int count = 0;
+        count = 0;
         for (i=0; i<sv_maxclients->integer; ++i) {
             switch (svs.clients[i].state) {
             case CS_CONNECTED:
@@ -134,6 +135,7 @@ void MET_ClientCount (void) {
 		} */
 	
 	MET_Flush(MET_GlobalFile());
+    return count;
 }
 
 

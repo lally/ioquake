@@ -62,7 +62,7 @@ void MET_CounterSample(struct MET_Counter *dest, int count);
 void MET_CounterFlush(struct MET_Counter *dest, double value);
 
 
-void MET_ClientCount(void); // defined in sv_main.c, for var access
+int  MET_ClientCount(void); // defined in sv_main.c, for var access
 							// reasons. 
 
 #endif

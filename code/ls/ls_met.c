@@ -71,9 +71,11 @@ void MET_FreqSample(struct MET_Freq *dest) {
 	else {
 		struct timeval now;
 		gettimeofday(&now, 0);
-		dest->samples[dest->sample_count++] = MET_tv_sub(&dest->last, &now);
-		should_flush = (dest->sample_count == dest->sample_buf_sz);
-		dest->sample_count %= dest->sample_buf_sz;
+        if (dest->sample_count < dest->sample_buf_sz) {
+            dest->samples[dest->sample_count++] = MET_tv_sub(&dest->last, &now); 
+        } else {
+            should_flush = 1;
+        }
 	}
 	if (should_flush) {
 		MET_FreqFlush(dest);
@@ -95,6 +97,7 @@ void MET_FreqFlush(struct MET_Freq *dest) {
 			/* Use milliseconds */ 
 			1000.0 * total / dest->sample_count,
 			dest->sample_count);
+    dest->sample_count = 0;
 	MET_Flush(dest->file);
 }
 

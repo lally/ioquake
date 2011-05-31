@@ -884,6 +884,8 @@ intptr_t SV_GameSystemCalls( intptr_t *args ) {
 		QUAKE_SIM_PROJ_END();
 		return 0;
 		
+        // Note: I think these may just be health power-ups, etc.  Not
+        // necessarily projectiles.
 	case METRICS_SIM_ITEM_START:
 		QUAKE_SIM_ITEM_START();
 		return 0;
@@ -892,6 +894,7 @@ intptr_t SV_GameSystemCalls( intptr_t *args ) {
 		QUAKE_SIM_ITEM_END();
 		return 0;
 
+        // not necessary.
 	case METRICS_SIM_AI_START:
 		QUAKE_SIM_AI_START();
 		return 0;
