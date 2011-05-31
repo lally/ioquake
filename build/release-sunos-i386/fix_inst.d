@@ -32,8 +32,7 @@ BEGIN
         Ping_ttl = 0;
         Ping_cnt = 0;
 
-        /* The last arg1 for VM_Call that we tracked.  Used for the :return */
-        vm_mode = -1;
+        vm_mode = -1; /* the last arg1 value for VM_Call, for matching up :return */
 
         RunFrame_tmp = 0;
         RunFrame_ttl = 0;
@@ -54,7 +53,7 @@ BEGIN
         t_total = walltimestamp;
 }
 
-
+/*
 pid$1::IN_Frame:entry
 {
         INFrame_tmp = vtimestamp;
@@ -92,24 +91,30 @@ pid$1::SV_CalcPings:return
         Ping_cnt++;
         Ping_ttl += Ping_tmp;
 }
-
+*/
 /* SV_Frame: VM_Call(gvm, GAME_RUN_FRAME (8), sv.time) */
 pid$1::VM_Call:entry
-/arg1 == 8/
+/ arg1 == 8 /
 {
+        vm_mode = arg1;
         RunFrame_tmp = vtimestamp;
+        @LQ["RunFrame_callnum"] = lquantize(arg1,0,16,1);
+/*        @["RunFrame0"] = quantize(arg0);
+        @["RunFrame2"] = quantize(arg2);
+        @["RunFrame3"] = quantize(arg3); */
 }
 
 pid$1::VM_Call:return
-/arg1 == 8/
+/ vm_mode == 8 /
 {
-        RunFrame_tmp = (vtimestamp - RunFrame_tmp);
-        @["RunFrame"] = quantize(RunFrame_tmp/1000);
-        RunFrame_cnt++;
-        RunFrame_ttl += RunFrame_tmp;
+       RunFrame_tmp = vtimestamp - RunFrame_tmp;
+       @["RunFrame"] = quantize(RunFrame_tmp);
+       RunFrame_ttl += RunFrame_tmp;
+       RunFrame_cnt++;
+       vm_mode = -1;
 }
 
-pid$1::SV_CheckTimeouts:entry
+/*pid$1::SV_CheckTimeouts:entry
 {
         Timeout_tmp = vtimestamp;
 }
@@ -135,31 +140,36 @@ pid$1::SV_SendClientMessages:return
         Send_cnt++;
         Send_ttl += Send_tmp;
 }
-
-quake$1:::sim-player-start
+*/
+pid$1::VM_Call:entry
+/ arg1 == 7 /
 {       
         Player_tmp = vtimestamp;
+	vm_mode = arg1
 }
 
-quake$1:::sim-player-abort
-{
-        Player_tmp = -1;
-}
-
-quake$1:::sim-player-end 
-/ Player_tmp != -1 /
+pid$1::VM_Call:return
+/ vm_mode == 7 /
 {
         Player_tmp = (vtimestamp - Player_tmp);
         @["Player"] = quantize(Player_tmp/1000);
         Player_cnt++;
         Player_ttl += Player_tmp;
+        vm_mode = -1;
 }
+
+quake$1:::sim-player-end
+/ Player_tmp == 0 /
+{
+        Player_cnt++; 
+}
+
 
 END {
     t_total = (walltimestamp - t_total) / 1000;
 
     printf("\n");
-    printf("Total Running time: %d usec\n", t_total);
+    printf("Total Running time: %d usec\n\n", t_total);
 
     
     printf("INFrame   Average: %d nanoseconds\n", INFrame_ttl / (INFrame_cnt == 0? 1:INFrame_cnt));
