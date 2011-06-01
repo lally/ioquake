@@ -906,17 +906,14 @@ intptr_t SV_GameSystemCalls( intptr_t *args ) {
 		return 0;
 		
     case METRICS_WEAPON_FIRE_START:
-        printf("Weapon-fire-start(%d, %d)\n", args[1], args[2]);
         QUAKE_WEAPON_FIRE_START(args[1], args[2]);
         return 0;
 
     case METRICS_WEAPON_FIRE_END:
-        printf("Weapon-fire-end(%d, %d)\n", args[1], args[2]);
         QUAKE_WEAPON_FIRE_END(args[1], args[2]);
         return 0;
 
     case METRICS_PROJECTILE_COUNTS:
-        printf("Entity-Counts(%d, %d, %d, %d)\n",  args[1], args[2], args[3], args[4]);
         QUAKE_ENTITY_COUNTS(args[1], args[2], args[3], args[4]);
         return 0;
 
