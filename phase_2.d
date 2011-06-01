@@ -319,9 +319,13 @@ END {
 
     printf("\n************************************************************\n\n");
     
-    printf("Sampled Player Average: %d.  \tNSamples: %d\n", NPlayer_ttl / (NEntity_cnt == 0? 1:NEntity_cnt), NEntity_cnt);
-    printf("Sampled Rocket Average: %d.  \tNSamples: %d\n", NRocket_ttl / (NEntity_cnt == 0? 1:NEntity_cnt), NEntity_cnt);
-    printf("Sampled Rail Average: %d.  \tNSamples: %d\n", NRail_ttl / (NEntity_cnt == 0? 1:NEntity_cnt), NEntity_cnt);
-    printf("Sampled Shotgun Average: %d.  \tNSamples: %d\n", NShotgun_ttl / (NEntity_cnt == 0? 1:NEntity_cnt), NEntity_cnt);
+    printf("Sampled Player Average: \t%d.  \tTotal: %d\tNSamples: %d\n", NPlayer_ttl / (NEntity_cnt == 0? 1:NEntity_cnt), 
+           NPlayer_ttl, NEntity_cnt);
+    printf("Sampled Rocket Average*1k: \t%d.  \tTotal: %d\tNSamples: %d\n", (NRocket_ttl*1000) / (NEntity_cnt == 0? 1:NEntity_cnt), 
+           NRocket_ttl, NEntity_cnt);
+    printf("Sampled Rail Average*1k: \t%d.  \tTotal: %d\tNSamples: %d\n", (NRail_ttl*1000) / (NEntity_cnt == 0? 1:NEntity_cnt), 
+           NRail_ttl, NEntity_cnt);
+    printf("Sampled Shotgun Average*1k: \t%d.  \tTotal: %d\tNSamples: %d\n", (NShotgun_ttl*1000) / (NEntity_cnt == 0? 1:NEntity_cnt), 
+           NShotgun_ttl, NEntity_cnt);
 
 }

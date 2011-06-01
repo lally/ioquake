@@ -848,7 +848,7 @@ intptr_t SV_GameSystemCalls( intptr_t *args ) {
 		return FloatAsInt( ceil( VMF(1) ) );
 
 	case METRICS_SIM_TOTAL:
-		QUAKE_SIM_TOTAL(args[0]);
+		QUAKE_SIM_TOTAL(args[1]);
 		return 0;
 		
 	case METRICS_SIM_PLAYERS: {
@@ -906,15 +906,18 @@ intptr_t SV_GameSystemCalls( intptr_t *args ) {
 		return 0;
 		
     case METRICS_WEAPON_FIRE_START:
-        QUAKE_WEAPON_FIRE_START(args[0], args[1]);
+        printf("Weapon-fire-start(%d, %d)\n", args[1], args[2]);
+        QUAKE_WEAPON_FIRE_START(args[1], args[2]);
         return 0;
 
     case METRICS_WEAPON_FIRE_END:
-        QUAKE_WEAPON_FIRE_END(args[0], args[1]);
+        printf("Weapon-fire-end(%d, %d)\n", args[1], args[2]);
+        QUAKE_WEAPON_FIRE_END(args[1], args[2]);
         return 0;
 
     case METRICS_PROJECTILE_COUNTS:
-        QUAKE_ENTITY_COUNTS(args[0], args[1], args[2], args[3]);
+        printf("Entity-Counts(%d, %d, %d, %d)\n",  args[1], args[2], args[3], args[4]);
+        QUAKE_ENTITY_COUNTS(args[1], args[2], args[3], args[4]);
         return 0;
 
 	default:
